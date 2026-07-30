@@ -44,3 +44,7 @@ python3 -m http.server --directory build/web
 ```
 
 Then open <http://localhost:8000>. The generated files in `build/web` are static and can be deployed to any static web host.
+
+### Deploy to GitHub Pages
+
+Pushes to `main` build and deploy the web application through `.github/workflows/pages.yml`. Pull requests run the same web build without deploying it. Before the first deployment, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**.

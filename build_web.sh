@@ -18,7 +18,6 @@ odin build "$ROOT_DIR/code/web" \
 	-target:js_wasm32 \
 	-build-mode:obj \
 	-define:RAYLIB_WASM_LIB=env.o \
-	-define:IMGUI_WASM_LIB=env.o \
 	-out:"$OBJECT"
 
 cp "$ODIN_ROOT/core/sys/wasm/js/odin.js" "$OUT_DIR/odin.js"
