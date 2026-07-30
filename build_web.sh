@@ -18,6 +18,7 @@ odin build "$ROOT_DIR/code/web" \
 	-target:js_wasm32 \
 	-build-mode:obj \
 	-define:RAYLIB_WASM_LIB=env.o \
+	-define:IMGUI_WASM_LIB=env.o \
 	-out:"$OBJECT"
 
 cp "$ODIN_ROOT/core/sys/wasm/js/odin.js" "$OUT_DIR/odin.js"
@@ -33,5 +34,16 @@ em++ -o "$OUT_DIR/index.html" \
 	-sWARN_ON_UNDEFINED_SYMBOLS=0 \
 	-sEXPORTED_RUNTIME_METHODS='["HEAPF32"]' \
 	--shell-file "$ROOT_DIR/code/web/index_template.html"
+
+node - "$OUT_DIR/index.wasm" <<'NODE'
+const fs = require("fs");
+const path = process.argv[2];
+const module = new WebAssembly.Module(fs.readFileSync(path));
+const invalid = WebAssembly.Module.imports(module).filter(({module}) => module.endsWith(".a"));
+if (invalid.length > 0) {
+	console.error(`error: static library was emitted as a WASM import module: ${invalid[0].module}`);
+	process.exit(1);
+}
+NODE
 
 echo "Web build created in $OUT_DIR"

@@ -1,5 +1,7 @@
 package imgui
 
+IMGUI_WASM_LIB :: #config(IMGUI_WASM_LIB, "lib/libtinyeda_imgui_wasm32.a")
+
 when ODIN_OS == .Linux {
 	@(require) foreign import stdcpp "system:stdc++"
 } else when ODIN_OS == .Darwin {
@@ -32,7 +34,9 @@ when ODIN_OS == .Windows {
 	}
 } else when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 	@export
-	foreign import imguilib "lib/libtinyeda_imgui_wasm32.a"
+	foreign import imguilib {
+		IMGUI_WASM_LIB,
+	}
 } else {
 	#panic("No TinyEDA ImGui library is available for this target")
 }
