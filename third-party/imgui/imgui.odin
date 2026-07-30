@@ -9,27 +9,32 @@ when ODIN_OS == .Linux {
 when ODIN_OS == .Windows {
 	when ODIN_ARCH == .amd64 {
 		@export
-		foreign import imguilib "imgui_windows_x64.lib"
+		foreign import imguilib "lib/tinyeda_imgui_windows_x64.lib"
 	} else {
 		@export
-		foreign import imguilib "imgui_windows_arm64.lib"
+		foreign import imguilib "lib/tinyeda_imgui_windows_arm64.lib"
 	}
 } else when ODIN_OS == .Linux {
 	when ODIN_ARCH == .amd64 {
 		@export
-		foreign import imguilib "libimgui_linux_x64.a"
+		foreign import imguilib "lib/libtinyeda_imgui_linux_x64.a"
 	} else {
 		@export
-		foreign import imguilib "libimgui_linux_arm64.a"
+		foreign import imguilib "lib/libtinyeda_imgui_linux_arm64.a"
 	}
 } else when ODIN_OS == .Darwin {
 	when ODIN_ARCH == .amd64 {
 		@export
-		foreign import imguilib "libimgui_macosx_x64.a"
+		foreign import imguilib "lib/libtinyeda_imgui_macos_x64.a"
 	} else {
 		@export
-		foreign import imguilib "libimgui_macosx_arm64.a"
+		foreign import imguilib "lib/libtinyeda_imgui_macos_arm64.a"
 	}
+} else when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
+	@export
+	foreign import imguilib "lib/libtinyeda_imgui_wasm32.a"
+} else {
+	#panic("No TinyEDA ImGui library is available for this target")
 }
 
 CHECKVERSION :: proc() {

@@ -19,3 +19,15 @@ What we want to give users:-
 3. No PDK integration and end to end signoff flow to go from getting pdk to submitting GDS.
 
 This demo primarily demonstrates the ux of such an interface not internals, for some internals we will just mock results or maybe plugin some open source tools for now while the core digital RTL->GDS workflow and analog schematic -> GDS workflow is created.
+
+## Development
+
+The application uses Odin's `vendor:raylib` package as its platform and renderer layer and [rlImGui](https://github.com/raylib-extras/rlImGui) to connect raylib to Dear ImGui. UI code directly uses generated imgui bindings and linked binary (platform specific) which renders via raylib backend.
+
+### Run
+
+To run the program all you need to do is
+
+```sh
+odin run code
+```

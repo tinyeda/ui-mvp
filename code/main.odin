@@ -1,72 +1,45 @@
 package main
 
-import "core:c"
-import "vendor:glfw"
-import "vendor:OpenGL"
+import rl "vendor:raylib"
 import "../third-party/imgui"
 
-framebuffer_size_callback :: proc "c" (window: glfw.WindowHandle, width, height: c.int) {
-	OpenGL.Viewport(0, 0, width, height)
+TARGET_FPS :: 0
+
+draw_ui :: proc() {
+	imgui.DockSpaceOverViewport()
+
+	if imgui.Begin("TinyEDA", nil, {}) {
+		imgui.Text("Welcome to TinyEDA")
+		imgui.Separator()
+		imgui.Text("Raylib provides the platform and renderer layer")
+		imgui.SeparatorText("Performance")
+		imgui.Text("FPS: %d", rl.GetFPS())
+		imgui.Text("Frame time: %.2f ms", f64(rl.GetFrameTime()) * 1000)
+		imgui.Text("Target FPS: %d", TARGET_FPS)
+	}
+	imgui.End()
 }
 
 main :: proc() {
-	if !glfw.Init() {
-		return
-	}
-	defer glfw.Terminate()
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .WINDOW_HIGHDPI})
+	rl.InitWindow(1280, 720, "TinyEDA")
+	if !rl.IsWindowReady() { return }
+	defer rl.CloseWindow()
+	rl.SetTargetFPS(TARGET_FPS)
 
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
-	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-	glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, true)
-	glfw.WindowHint(glfw.RESIZABLE, true)
-
-	window := glfw.CreateWindow(1280, 720, "ImGui + Odin", nil, nil)
-	if window == nil { return }
-	defer glfw.DestroyWindow(window)
-
-	glfw.MakeContextCurrent(window)
-	glfw.SwapInterval(1)
-
-	OpenGL.load_up_to(3, 3, glfw.gl_set_proc_address)
-	OpenGL.Viewport(0, 0, 1280, 720)
-	glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
-
-	imgui.CreateContext()
-	defer imgui.DestroyContext()
+	imgui.Raylib_Setup(true)
+	defer imgui.Raylib_Shutdown()
 
 	io := imgui.GetIO()
-	io.ConfigFlags = io.ConfigFlags | {.NavEnableKeyboard}
+	io.ConfigFlags |= {.NavEnableKeyboard, .DockingEnable}
 
-	imgui.ImplGlfw_InitForOpenGL(rawptr(window), true)
-	defer imgui.ImplGlfw_Shutdown()
+	for !rl.WindowShouldClose() {
+		rl.BeginDrawing()
+		rl.ClearBackground(rl.Color{20, 22, 26, 255})
 
-	imgui.ImplOpenGL3_Init("#version 330")
-	defer imgui.ImplOpenGL3_Shutdown()
-
-	for !glfw.WindowShouldClose(window) {
-		glfw.PollEvents()
-
-		imgui.ImplOpenGL3_NewFrame()
-		imgui.ImplGlfw_NewFrame()
-		imgui.NewFrame()
-
-		if imgui.Begin("TinyEDA", nil, {}) {
-			imgui.Text("Welcome to TinyEDA")
-			imgui.Separator()
-			imgui.Text("This is running on macOS with OpenGL 3.3")
-			imgui.End()
-		}
-
-		imgui.Render()
-
-		fb_w, fb_h := glfw.GetFramebufferSize(window)
-		OpenGL.Viewport(0, 0, fb_w, fb_h)
-		OpenGL.ClearColor(0.1, 0.1, 0.1, 1.0)
-		OpenGL.Clear(OpenGL.COLOR_BUFFER_BIT)
-
-		imgui.ImplOpenGL3_RenderDrawData(imgui.GetDrawData())
-
-		glfw.SwapBuffers(window)
+		imgui.Raylib_Begin()
+		draw_ui()
+		imgui.Raylib_End()
+		rl.EndDrawing()
 	}
 }
