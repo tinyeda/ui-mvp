@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<meta name="title" content="TinyEDA">
+	<meta name="description" content="TinyEDA studio UI">
+	<link rel="icon" href="data:,">
+	<title>TinyEDA</title>
+	<style>
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			overflow: hidden;
+			background: #14161a;
+		}
+		canvas {
+			display: block;
+			margin: auto;
+			border: 0;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()" onmousedown="event.target.focus()" onkeydown="event.preventDefault()"></canvas>
+	<script src="odin.js"></script>
+	<script>
+		const odinMemoryInterface = new odin.WasmMemoryInterface();
+		odinMemoryInterface.setIntSize(4);
+		const odinImports = odin.setupDefaultImports(odinMemoryInterface);
+
+		var Module = {
+			instantiateWasm: (imports, successCallback) => {
+				const mergedImports = {...odinImports, ...imports};
+				return WebAssembly.instantiateStreaming(fetch("index.wasm"), mergedImports).then((output) => {
+					const exports = output.instance.exports;
+					odinMemoryInterface.setExports(exports);
+					odinMemoryInterface.setMemory(exports.memory);
+					return successCallback(output.instance);
+				});
+			},
+			onRuntimeInitialized: () => {
+				const exports = wasmExports;
+				const canvas = document.getElementById("canvas");
+				exports._start();
+				exports.main_start();
+
+				const sendResize = () => {
+					exports.web_window_size_changed(canvas.width, canvas.height);
+				};
+				window.addEventListener("resize", sendResize, true);
+				sendResize();
+
+				const frame = () => {
+					if (!exports.main_update()) {
+						exports.main_end();
+						exports._end();
+						return;
+					}
+					window.requestAnimationFrame(frame);
+				};
+				window.requestAnimationFrame(frame);
+			},
+			canvas: document.getElementById("canvas"),
+			print: (...args) => console.log(...args),
+		};
+	</script>
+	{{{ SCRIPT }}}
+</body>
+</html>

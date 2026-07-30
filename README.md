@@ -22,12 +22,25 @@ This demo primarily demonstrates the ux of such an interface not internals, for 
 
 ## Development
 
-The application uses Odin's `vendor:raylib` package as its platform and renderer layer and [rlImGui](https://github.com/raylib-extras/rlImGui) to connect raylib to Dear ImGui. UI code directly uses generated imgui bindings and linked binary (platform specific) which renders via raylib backend.
+The application uses Odin's `vendor:raylib` package as its platform and renderer layer and [rlImGui](https://github.com/raylib-extras/rlImGui) to connect raylib to Dear ImGui. UI code directly uses the generated ImGui bindings. The repository ships the ImGui/rlImGui static libraries needed by its supported targets, so normal application builds do not compile C++ or require CMake.
 
-### Run
+The shared application lifecycle and UI live in `code/app`. Desktop and web have small entry points that provide their different main-loop and runtime setup, while calling the same `app.Init`, `app.Frame`, and `app.Shutdown` procedures.
 
-To run the program all you need to do is
+### Run on desktop
+
+With Odin on `PATH`:
 
 ```sh
 odin run code
 ```
+
+### Run on the web
+
+With Odin and an activated [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) on `PATH`:
+
+```sh
+./build_web.sh
+python3 -m http.server --directory build/web
+```
+
+Then open <http://localhost:8000>. The generated files in `build/web` are static and can be deployed to any static web host.

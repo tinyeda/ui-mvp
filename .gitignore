@@ -1,3 +1,7 @@
+# Folders
+build/
+
+# Files
 imgui.ini
 *.bin
 *.exe
