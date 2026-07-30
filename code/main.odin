@@ -21,7 +21,7 @@ draw_ui :: proc() {
 }
 
 main :: proc() {
-	rl.SetConfigFlags({.WINDOW_RESIZABLE, .WINDOW_HIGHDPI})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .WINDOW_HIGHDPI, .VSYNC_HINT})
 	rl.InitWindow(1280, 720, "TinyEDA")
 	if !rl.IsWindowReady() { return }
 	defer rl.CloseWindow()
