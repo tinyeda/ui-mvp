@@ -1,0 +1,4 @@
+third-party/imgui/lib/libtinyeda_imgui_macos_arm64.a filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/libtinyeda_imgui_wasm32.a filter=lfs diff=lfs merge=lfs -text
+third-party/openroad/bin/openroad_macos_arm64.bin filter=lfs diff=lfs merge=lfs -text
+third-party/openroad/lib/libopenroad_macos_arm64.a filter=lfs diff=lfs merge=lfs -text
