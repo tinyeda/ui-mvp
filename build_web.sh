@@ -6,7 +6,7 @@ OUT_DIR="$ROOT_DIR/build/web"
 ODIN_ROOT=$(odin root)
 
 if ! command -v em++ >/dev/null 2>&1; then
-	echo "error: em++ is not on PATH; activate emsdk before running this script" >&2
+	echo "error: em++ is not on PATH; activate emsdk before running this script (brew install emscripten on macOS)" >&2
 	exit 1
 fi
 
