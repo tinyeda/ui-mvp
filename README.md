@@ -28,7 +28,16 @@ The shared application lifecycle and UI live in `code/app`. Desktop and web have
 
 ### Run on desktop
 
-With Odin on `PATH`:
+Clone the ui-mvp repository and download lfs objects:
+
+```sh
+git clone https://github.com/tinyeda/ui-mvp.git
+cd ui-mvp
+git lfs install
+git lfs pull
+```
+
+Install the Odin compiler [following instructions from the Odin website](https://odin-lang.org/docs/install/#from-source)
 
 ```sh
 odin run code
@@ -36,11 +45,11 @@ odin run code
 
 ### Run on the web
 
-With Odin and an activated [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) on `PATH`:
+With the Odin compiler installed, install [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) and run the web build script:
 
 ```sh
 ./build_web.sh
-python3 -m http.server --directory build/web
+python3 -m http.server --directory build/web --bind localhost:8000
 ```
 
 Then open <http://localhost:8000>. The generated files in `build/web` are static and can be deployed to any static web host.
