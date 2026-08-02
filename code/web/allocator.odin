@@ -6,10 +6,9 @@ import "core:mem"
 
 @(default_calling_convention = "c")
 foreign {
-	calloc  :: proc(num, size: c.size_t) -> rawptr ---
-	free    :: proc(ptr: rawptr) ---
-	malloc  :: proc(size: c.size_t) -> rawptr ---
-	realloc :: proc(ptr: rawptr, size: c.size_t) -> rawptr ---
+	calloc :: proc(num, size: c.size_t) -> rawptr ---
+	free   :: proc(ptr: rawptr) ---
+	malloc :: proc(size: c.size_t) -> rawptr ---
 }
 
 emscripten_allocator :: proc "contextless" () -> mem.Allocator {
@@ -27,26 +26,26 @@ emscripten_allocator_proc :: proc(
 	aligned_alloc :: proc(
 		size, alignment: int,
 		zero_memory: bool,
-		old_ptr: rawptr = nil,
 	) -> ([]byte, mem.Allocator_Error) {
 		a := max(alignment, align_of(rawptr))
 		space := size + a - 1
 
 		allocated_memory: rawptr
-		if old_ptr != nil {
-			original_old_ptr := mem.ptr_offset((^rawptr)(old_ptr), -1)^
-			allocated_memory = realloc(original_old_ptr, c.size_t(space + size_of(rawptr)))
-		} else if zero_memory {
+		if zero_memory {
 			allocated_memory = calloc(c.size_t(space + size_of(rawptr)), 1)
 		} else {
 			allocated_memory = malloc(c.size_t(space + size_of(rawptr)))
 		}
-		aligned_memory := rawptr(mem.ptr_offset((^u8)(allocated_memory), size_of(rawptr)))
+		if allocated_memory == nil {
+			return nil, .Out_Of_Memory
+		}
 
+		aligned_memory := rawptr(mem.ptr_offset((^u8)(allocated_memory), size_of(rawptr)))
 		ptr := uintptr(aligned_memory)
 		aligned_ptr := (ptr - 1 + uintptr(a)) & -uintptr(a)
 		difference := int(aligned_ptr - ptr)
-		if size + difference > space || allocated_memory == nil {
+		if size + difference > space {
+			free(allocated_memory)
 			return nil, .Out_Of_Memory
 		}
 
@@ -64,11 +63,15 @@ emscripten_allocator_proc :: proc(
 	aligned_resize :: proc(
 		pointer: rawptr,
 		old_size, new_size, new_alignment: int,
+		zero_memory: bool,
 	) -> ([]byte, mem.Allocator_Error) {
-		if pointer == nil {
-			return nil, nil
+		bytes, err := aligned_alloc(new_size, new_alignment, zero_memory)
+		if err != nil {
+			return nil, err
 		}
-		return aligned_alloc(new_size, new_alignment, true, pointer)
+		intrinsics.mem_copy(raw_data(bytes), pointer, min(old_size, new_size))
+		aligned_free(pointer)
+		return bytes, nil
 	}
 
 	switch mode {
@@ -83,22 +86,23 @@ emscripten_allocator_proc :: proc(
 		if old_memory == nil {
 			return aligned_alloc(size, alignment, true)
 		}
-
-		bytes := aligned_resize(old_memory, old_size, size, alignment) or_return
-		if size > old_size {
-			new_region := raw_data(bytes[old_size:])
-			intrinsics.mem_zero(new_region, size - old_size)
-		}
-		return bytes, nil
+		return aligned_resize(old_memory, old_size, size, alignment, true)
 	case .Resize_Non_Zeroed:
 		if old_memory == nil {
 			return aligned_alloc(size, alignment, false)
 		}
-		return aligned_resize(old_memory, old_size, size, alignment)
+		return aligned_resize(old_memory, old_size, size, alignment, false)
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_memory)
 		if set != nil {
-			set^ = {.Alloc, .Free, .Resize, .Query_Features}
+			set^ = {
+				.Alloc,
+				.Alloc_Non_Zeroed,
+				.Free,
+				.Resize,
+				.Resize_Non_Zeroed,
+				.Query_Features,
+			}
 		}
 		return nil, nil
 	case .Free_All, .Query_Info:
