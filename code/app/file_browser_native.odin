@@ -54,3 +54,7 @@ fb_native_read_range :: proc(path: string, offset: u64, length: u32) -> ([]byte,
 	delete(data)
 	return result, true
 }
+
+fb_native_write :: proc(path: string, data: []byte) -> bool {
+	return os.write_entire_file(path, data) == nil
+}

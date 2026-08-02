@@ -28,6 +28,8 @@ The shared application lifecycle and UI live in `code/app`. Desktop and web have
 
 Panel inventory and Dear ImGui's docking layout are restored across runs. Native builds save `workspace.json` and `imgui.ini` under the operating system's per-user configuration directory in a `TinyEDA` folder. Web builds store the equivalent data in the site's browser `localStorage`. Packaged application resources remain read-only; user layout changes are always written to per-user storage.
 
+The Text Editor panel opens general text files from the project explorer, keeps one tab per file, and marks edited tabs with an unsaved dot. Use its Save button or `Ctrl+S`/`Cmd+S` to save the active file. Desktop saves write to the selected filesystem path. All web browsers use the same portable project model: imports, newly created files, and saved edits are stored locally in IndexedDB and restored on later visits to the same site. Browser storage can be cleared by the browser or user and is not a backup, so the Project Explorer provides an **Export Project (.zip)** action. Browser saves update TinyEDA's local project copy rather than modifying the imported operating-system folder.
+
 ### Run on desktop
 
 Clone the ui-mvp repository and download lfs objects:

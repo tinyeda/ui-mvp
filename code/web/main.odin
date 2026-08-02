@@ -4,9 +4,36 @@ import "base:runtime"
 import "core:c"
 import "core:mem"
 import "../app"
+import "../../third-party/imgui"
+
+foreign import "odin_env"
+foreign {
+	web_set_clipboard_text :: proc "contextless" (data: rawptr, size: c.int) ---
+}
 
 @(private="file")
 web_context: runtime.Context
+web_clipboard_buffer: [dynamic]byte
+
+web_clipboard_get :: proc "c" (ctx: ^imgui.Context) -> cstring {
+	return cstring(raw_data(web_clipboard_buffer))
+}
+
+web_clipboard_set :: proc "c" (ctx: ^imgui.Context, text: cstring) {
+	context = web_context
+	bytes := ([^]byte)(text)
+	length := 0
+	for bytes[length] != 0 { length += 1 }
+	web_set_clipboard_text(rawptr(text), c.int(length))
+}
+
+web_clipboard_init :: proc() {
+	web_clipboard_buffer = make([dynamic]byte, 1)
+	web_clipboard_buffer[0] = 0
+	platform_io := imgui.GetPlatformIO()
+	platform_io.PlatformGetClipboardTextFn = web_clipboard_get
+	platform_io.PlatformSetClipboardTextFn = web_clipboard_set
+}
 
 @export
 main_start :: proc "c" () {
@@ -17,6 +44,7 @@ main_start :: proc "c" () {
 	web_context = context
 
 	app.Init()
+	web_clipboard_init()
 }
 
 @export
@@ -30,6 +58,8 @@ main_update :: proc "c" () -> bool {
 main_end :: proc "c" () {
 	context = web_context
 	app.Shutdown()
+	delete(web_clipboard_buffer)
+	web_clipboard_buffer = nil
 }
 
 @export
@@ -47,6 +77,15 @@ main_flush_workspace :: proc "c" () {
 @export
 web_transfer_alloc :: proc "c" (size: c.int) -> rawptr {
 	return malloc(c.size_t(size))
+}
+
+@export
+web_clipboard_changed :: proc "c" (memory: rawptr, size: c.int) {
+	context = web_context
+	resize(&web_clipboard_buffer, int(size) + 1)
+	copy(web_clipboard_buffer[:int(size)], ([^]byte)(memory)[:int(size)])
+	web_clipboard_buffer[size] = 0
+	free(memory)
 }
 
 @export
@@ -69,4 +108,12 @@ web_read_completed :: proc "c" (request_id: u64, memory: rawptr, size, success: 
 	data := ([^]byte)(memory)[:int(size)]
 	app.Web_Read_Completed(request_id, data, success != 0)
 	free(memory)
+}
+
+@export
+web_write_completed :: proc "c" (request_id: u64, path_memory: rawptr, path_size: c.int, handle, file_size: u64, success: c.int) {
+	context = web_context
+	path := ([^]byte)(path_memory)[:int(path_size)]
+	app.Web_Write_Completed(request_id, path, app.File_Handle(handle), file_size, success != 0)
+	free(path_memory)
 }

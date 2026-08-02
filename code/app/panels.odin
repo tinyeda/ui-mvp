@@ -6,6 +6,7 @@ import "../../third-party/imgui"
 Panel_Kind :: enum {
 	Welcome,
 	Project_Explorer,
+	Text_Editor,
 	Schematic,
 	Layout,
 	Console,
@@ -14,6 +15,7 @@ Panel_Kind :: enum {
 PANEL_KINDS :: [?]Panel_Kind{
 	.Welcome,
 	.Project_Explorer,
+	.Text_Editor,
 	.Schematic,
 	.Layout,
 	.Console,
@@ -44,6 +46,7 @@ panel_title :: proc(kind: Panel_Kind) -> string {
 	switch kind {
 	case .Welcome:          return "Welcome"
 	case .Project_Explorer: return "Project Explorer"
+	case .Text_Editor:      return "Text Editor"
 	case .Schematic:        return "Schematic"
 	case .Layout:           return "Layout"
 	case .Console:          return "Console"
@@ -52,7 +55,7 @@ panel_title :: proc(kind: Panel_Kind) -> string {
 }
 
 panel_is_singleton :: proc(kind: Panel_Kind) -> bool {
-	return kind == .Project_Explorer
+	return kind == .Project_Explorer || kind == .Text_Editor
 }
 
 panel_exists :: proc(kind: Panel_Kind) -> bool {
@@ -116,6 +119,8 @@ panel_draw_contents :: proc(panel: ^Panel) {
 		if len(latest_path) > 0 { imgui.Text("Latest: %s", fb_cstr(latest_path)) }
 	case .Project_Explorer:
 		File_Browser_Draw_Explorer_Contents()
+	case .Text_Editor:
+		text_editor_draw()
 	case .Schematic:
 		imgui.TextUnformatted("Schematic view")
 		imgui.Separator()

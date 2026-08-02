@@ -1,5 +1,6 @@
 package app
 
+import "core:strings"
 import "../../third-party/imgui"
 
 UI_SCALE_MIN :: 0.75
@@ -75,12 +76,21 @@ ui_scale_update :: proc() {
 
 draw_ui :: proc() {
 	ui_scale_update()
+	text_editor_update()
 	panels_draw_menu()
 	dockspace_id := imgui.DockSpaceOverViewport()
 
 	if result, ok := File_Browser_Take_Result(); ok {
 		delete(latest_path)
-		latest_path = result
+		latest_path = strings.clone(result)
+		switch browser.mode {
+		case .Pick_File: text_editor_open_path(result)
+		case .Save_File:
+			text_editor_new_path(result)
+			text_editor_save(text_active_document)
+		case .Pick_Folder, .Explorer:
+		}
+		delete(result)
 	}
 
 	panels_draw(dockspace_id)

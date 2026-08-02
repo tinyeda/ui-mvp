@@ -95,6 +95,7 @@ Shutdown :: proc() {
 	delete(latest_path)
 	latest_path = ""
 	workspace_shutdown()
+	text_editor_shutdown()
 	panels_shutdown()
 	file_browser_shutdown()
 	if !rl.IsWindowReady() {
