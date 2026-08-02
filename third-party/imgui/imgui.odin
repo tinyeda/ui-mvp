@@ -3845,6 +3845,7 @@ foreign imguilib {
 		scale_factor: f32) ---
 	// Input Functions
 	// Queue a new key down/up event. Key should be "translated" (as in, generally ImGuiKey_A matches the key end-user would use to emit an 'A' character)
+	@(link_name = "ImGuiIO_AddKeyEvent")
 	IO_AddKeyEvent :: proc(
 		self: ^IO,
 		key: Key,
@@ -3891,6 +3892,7 @@ foreign imguilib {
 		self: ^IO,
 		c: Wchar16) ---
 	// Queue a new characters input from a UTF-8 string
+	@(link_name = "ImGuiIO_AddInputCharactersUTF8")
 	IO_AddInputCharactersUTF8 :: proc(
 		self: ^IO,
 		str: cstring) ---
