@@ -251,7 +251,7 @@ fb_contents :: proc(modal: bool) {
 	}
 }
 
-File_Browser_Draw_Explorer :: proc() { if imgui.Begin("Project Explorer", nil, {}) { fb_contents(false) }; imgui.End() }
+File_Browser_Draw_Explorer_Contents :: proc() { fb_contents(false) }
 File_Browser_Draw_Modals :: proc() {
 	if browser.open_requested { imgui.OpenPopup("File Browser"); browser.open_requested = false }
 	if imgui.BeginPopupModal("File Browser", nil, {.AlwaysAutoResize}) { fb_contents(true); imgui.EndPopup() }
