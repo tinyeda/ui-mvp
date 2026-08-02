@@ -39,6 +39,14 @@
 		fileInput.multiple = true;
 		fileInput.hidden = true;
 		document.body.appendChild(fileInput);
+		const mobileTextInput = document.createElement("textarea");
+		mobileTextInput.setAttribute("aria-hidden", "true");
+		mobileTextInput.setAttribute("autocapitalize", "off");
+		mobileTextInput.setAttribute("autocomplete", "off");
+		mobileTextInput.setAttribute("spellcheck", "false");
+		mobileTextInput.style.cssText = "position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1";
+		document.body.appendChild(mobileTextInput);
+		const hasMobileKeyboard = navigator.maxTouchPoints > 0 && matchMedia("(pointer: coarse)").matches;
 		const fileHandles = new Map();
 		const pathHandles = new Map();
 		let nextFileHandle = 1;
@@ -306,6 +314,41 @@
 			onRuntimeInitialized: () => {
 				const exports = wasmExports;
 				const canvas = document.getElementById("canvas");
+				const sendMobileText = (text) => {
+					if (!text) return;
+					const data = textEncoder.encode(text);
+					const ptr = exports.web_transfer_alloc(data.length + 1);
+					if (ptr === 0) return;
+					const destination = new Uint8Array(exports.memory.buffer, ptr, data.length + 1);
+					destination.set(data);
+					destination[data.length] = 0;
+					exports.web_text_input(ptr);
+				};
+				mobileTextInput.addEventListener("beforeinput", (event) => {
+					switch (event.inputType) {
+					case "deleteContentBackward":
+					case "deleteWordBackward":
+						exports.web_text_key(0);
+						break;
+					case "deleteContentForward":
+					case "deleteWordForward":
+						exports.web_text_key(1);
+						break;
+					case "insertLineBreak":
+					case "insertParagraph":
+						exports.web_text_key(2);
+						break;
+					default:
+						return;
+					}
+					event.preventDefault();
+					mobileTextInput.value = "";
+				});
+				mobileTextInput.addEventListener("input", (event) => {
+					if (event.isComposing) return;
+					sendMobileText(event.data ?? mobileTextInput.value);
+					mobileTextInput.value = "";
+				});
 				exports._start();
 				exports.main_start();
 				void restoreProjectFiles();
@@ -366,6 +409,15 @@
 						appRunning = false;
 						exports.main_end();
 						exports._end();
+					}
+					if (hasMobileKeyboard) {
+						const wantsTextInput = exports.web_wants_text_input() !== 0;
+						if (wantsTextInput && document.activeElement !== mobileTextInput) {
+							mobileTextInput.value = "";
+							mobileTextInput.focus({preventScroll: true});
+						} else if (!wantsTextInput && document.activeElement === mobileTextInput) {
+							mobileTextInput.blur();
+						}
 					}
 					updateInProgress = false;
 				};

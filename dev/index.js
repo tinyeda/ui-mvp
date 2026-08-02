@@ -9707,6 +9707,9 @@ var _web_window_size_changed = Module['_web_window_size_changed'] = makeInvalidE
 var _main_flush_workspace = Module['_main_flush_workspace'] = makeInvalidEarlyAccess('_main_flush_workspace');
 var _web_transfer_alloc = Module['_web_transfer_alloc'] = makeInvalidEarlyAccess('_web_transfer_alloc');
 var _web_read_alloc = Module['_web_read_alloc'] = makeInvalidEarlyAccess('_web_read_alloc');
+var _web_wants_text_input = Module['_web_wants_text_input'] = makeInvalidEarlyAccess('_web_wants_text_input');
+var _web_text_input = Module['_web_text_input'] = makeInvalidEarlyAccess('_web_text_input');
+var _web_text_key = Module['_web_text_key'] = makeInvalidEarlyAccess('_web_text_key');
 var _web_clipboard_changed = Module['_web_clipboard_changed'] = makeInvalidEarlyAccess('_web_clipboard_changed');
 var _web_register_file = Module['_web_register_file'] = makeInvalidEarlyAccess('_web_register_file');
 var _web_transfer_finished = Module['_web_transfer_finished'] = makeInvalidEarlyAccess('_web_transfer_finished');
@@ -9739,6 +9742,9 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['main_flush_workspace'] != 'undefined', 'missing Wasm export: main_flush_workspace');
   assert(typeof wasmExports['web_transfer_alloc'] != 'undefined', 'missing Wasm export: web_transfer_alloc');
   assert(typeof wasmExports['web_read_alloc'] != 'undefined', 'missing Wasm export: web_read_alloc');
+  assert(typeof wasmExports['web_wants_text_input'] != 'undefined', 'missing Wasm export: web_wants_text_input');
+  assert(typeof wasmExports['web_text_input'] != 'undefined', 'missing Wasm export: web_text_input');
+  assert(typeof wasmExports['web_text_key'] != 'undefined', 'missing Wasm export: web_text_key');
   assert(typeof wasmExports['web_clipboard_changed'] != 'undefined', 'missing Wasm export: web_clipboard_changed');
   assert(typeof wasmExports['web_register_file'] != 'undefined', 'missing Wasm export: web_register_file');
   assert(typeof wasmExports['web_transfer_finished'] != 'undefined', 'missing Wasm export: web_transfer_finished');
@@ -9767,6 +9773,9 @@ function assignWasmExports(wasmExports) {
   _main_flush_workspace = Module['_main_flush_workspace'] = createExportWrapper('main_flush_workspace', wasmExports['main_flush_workspace'], 0);
   _web_transfer_alloc = Module['_web_transfer_alloc'] = createExportWrapper('web_transfer_alloc', wasmExports['web_transfer_alloc'], 1);
   _web_read_alloc = Module['_web_read_alloc'] = createExportWrapper('web_read_alloc', wasmExports['web_read_alloc'], 1);
+  _web_wants_text_input = Module['_web_wants_text_input'] = createExportWrapper('web_wants_text_input', wasmExports['web_wants_text_input'], 0);
+  _web_text_input = Module['_web_text_input'] = createExportWrapper('web_text_input', wasmExports['web_text_input'], 1);
+  _web_text_key = Module['_web_text_key'] = createExportWrapper('web_text_key', wasmExports['web_text_key'], 1);
   _web_clipboard_changed = Module['_web_clipboard_changed'] = createExportWrapper('web_clipboard_changed', wasmExports['web_clipboard_changed'], 2);
   _web_register_file = Module['_web_register_file'] = createExportWrapper('web_register_file', wasmExports['web_register_file'], 4);
   _web_transfer_finished = Module['_web_transfer_finished'] = createExportWrapper('web_transfer_finished', wasmExports['web_transfer_finished'], 0);
