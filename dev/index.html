@@ -208,19 +208,23 @@
 		const webReadFile = (handle, offset, length, requestId) => {
 			void (async () => {
 				let ptr = 0;
+				let allocatedLength = 0;
+				let success = 0;
 				try {
 					const file = fileHandles.get(Number(handle));
 					const start = Number(offset);
 					if (!file || !Number.isSafeInteger(start) || start < 0) throw new Error("Invalid file read");
 					const end = Math.min(start + Number(length), file.size);
 					const contents = new Uint8Array(await file.slice(start, end).arrayBuffer());
-					ptr = wasmExports.web_transfer_alloc(contents.length);
+					allocatedLength = contents.length;
+					ptr = wasmExports.web_read_alloc(allocatedLength);
+					if (allocatedLength > 0 && ptr === 0) throw new Error("WASM file read allocation failed");
 					new Uint8Array(wasmExports.memory.buffer, ptr, contents.length).set(contents);
-					wasmExports.web_read_completed(requestId, ptr, contents.length, 1);
+					success = 1;
 				} catch (error) {
 					console.error("TinyEDA file read failed", error);
-					wasmExports.web_read_completed(requestId, ptr, 0, 0);
 				}
+				wasmExports.web_read_completed(requestId, ptr, ptr === 0 ? 0 : allocatedLength, success);
 			})();
 		};
 		const webWriteFile = (pathPtr, pathLength, dataPtr, dataLength, requestId) => {
