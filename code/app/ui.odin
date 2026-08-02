@@ -8,10 +8,12 @@ UI_SCALE_STEP :: 0.125
 
 latest_path: string
 ui_scale: f32 = 1.0
+ui_display_scale: f32 = 1.0
 ui_scale_base_style: imgui.Style
 
 ui_scale_init :: proc() {
 	ui_scale = 1.0
+	ui_display_scale = 1.0
 	ui_scale_base_style = imgui.GetStyle()^
 }
 
@@ -28,16 +30,31 @@ ui_scale_shortcut :: proc(key: imgui.Key, shift: bool = false) -> bool {
 	return ctrl_pressed || super_pressed
 }
 
+ui_scale_apply :: proc() {
+	// Web renders in device pixels, while ui_scale is the user's logical zoom.
+	combined_scale := ui_scale * ui_display_scale
+	style := imgui.GetStyle()
+	style^ = ui_scale_base_style
+	imgui.Style_ScaleAllSizes(style, combined_scale)
+	style.FontScaleMain = ui_scale_base_style.FontScaleMain * combined_scale
+}
+
 ui_scale_set :: proc(scale: f32) {
 	new_scale := clamp(scale, UI_SCALE_MIN, UI_SCALE_MAX)
 	if new_scale == ui_scale {
 		return
 	}
-	style := imgui.GetStyle()
-	style^ = ui_scale_base_style
-	imgui.Style_ScaleAllSizes(style, new_scale)
-	style.FontScaleMain = ui_scale_base_style.FontScaleMain * new_scale
 	ui_scale = new_scale
+	ui_scale_apply()
+}
+
+ui_display_scale_set :: proc(scale: f32) {
+	new_scale := scale > 0 ? scale : 1.0
+	if new_scale == ui_display_scale {
+		return
+	}
+	ui_display_scale = new_scale
+	ui_scale_apply()
 }
 
 ui_scale_update :: proc() {
