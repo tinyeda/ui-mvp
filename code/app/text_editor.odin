@@ -15,6 +15,7 @@ Text_Document :: struct {
 	loading:        bool,
 	saving:         bool,
 	save_failed:    bool,
+	binary:         bool,
 	read_request:   u64,
 	write_request:  u64,
 	revision:        u64,
@@ -51,6 +52,13 @@ text_document_contents :: proc(document: ^Text_Document) -> []byte {
 		length += 1
 	}
 	return document.buffer[:length]
+}
+
+text_contents_are_editable :: proc(contents: []byte) -> bool {
+	for byte in contents {
+		if byte == 0 { return false }
+	}
+	return true
 }
 
 text_editor_find :: proc(path: string) -> int {
@@ -126,7 +134,7 @@ text_editor_save :: proc(index: int) {
 		return
 	}
 	document := &text_documents[index]
-	if document.loading || document.saving || !document.dirty {
+	if document.loading || document.saving || document.binary || !document.dirty {
 		return
 	}
 	request_id, requested := File_Browser_Request_Write(document.path, text_document_contents(document))
@@ -148,9 +156,11 @@ text_editor_update :: proc() {
 			}
 			document.loading = false
 			document.read_request = 0
-			if result.ok {
+			if result.ok && text_contents_are_editable(result.data) {
 				delete(document.buffer)
 				document.buffer = text_document_make_buffer(result.data)
+			} else if result.ok {
+				document.binary = true
 			} else {
 				document.save_failed = true
 			}
@@ -197,6 +207,10 @@ text_editor_draw_document :: proc(document: ^Text_Document, index: int) {
 		imgui.TextUnformatted("Loading...")
 		return
 	}
+	if document.binary {
+		imgui.TextUnformatted("This file contains binary data and cannot be edited as text.")
+		return
+	}
 	if document.save_failed {
 		imgui.TextUnformatted("Could not read or save this file.")
 	}
@@ -229,7 +243,8 @@ text_editor_draw :: proc() {
 	}
 	imgui.SameLine()
 	can_save := text_active_document >= 0 && text_active_document < len(text_documents) &&
-	            text_documents[text_active_document].dirty && !text_documents[text_active_document].saving
+	            text_documents[text_active_document].dirty && !text_documents[text_active_document].saving &&
+	            !text_documents[text_active_document].binary
 	imgui.BeginDisabled(!can_save)
 	if imgui.Button("Save") {
 		text_editor_save(text_active_document)

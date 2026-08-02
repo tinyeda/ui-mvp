@@ -43,3 +43,10 @@ workspace_panel_round_trip_test :: proc(t: ^testing.T) {
 	testing.expect(t, !workspace_restore_panels(invalid_id, false))
 	workspace_loading = false
 }
+
+@(test)
+text_contents_are_editable_test :: proc(t: ^testing.T) {
+	testing.expect(t, text_contents_are_editable(nil))
+	testing.expect(t, text_contents_are_editable([]byte{'a', '\n', 'b'}))
+	testing.expect(t, !text_contents_are_editable([]byte{'a', 0, 'b'}))
+}
