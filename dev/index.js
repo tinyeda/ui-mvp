@@ -9050,11 +9050,29 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   }
   _tick_now.stub = true;
 
+  function _web_export_project(...args
+  ) {
+  abort('missing function: web_export_project');
+  }
+  _web_export_project.stub = true;
+
   function _web_pick_files(...args
   ) {
   abort('missing function: web_pick_files');
   }
   _web_pick_files.stub = true;
+
+  function _web_read_file(...args
+  ) {
+  abort('missing function: web_read_file');
+  }
+  _web_read_file.stub = true;
+
+  function _web_set_clipboard_text(...args
+  ) {
+  abort('missing function: web_set_clipboard_text');
+  }
+  _web_set_clipboard_text.stub = true;
 
   function _web_storage_load(...args
   ) {
@@ -9073,6 +9091,12 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   abort('missing function: web_storage_size');
   }
   _web_storage_size.stub = true;
+
+  function _web_write_file(...args
+  ) {
+  abort('missing function: web_write_file');
+  }
+  _web_write_file.stub = true;
 
   function _write(...args
   ) {
@@ -9621,49 +9645,49 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('wasmBinary');
 }
 var ASM_CONSTS = {
-  274854: () => { if (document.fullscreenElement) return 1; },  
- 274900: () => { return Module.canvas.width; },  
- 274932: () => { return parseInt(Module.canvas.style.width); },  
- 274980: () => { document.exitFullscreen(); },  
- 275007: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
- 275079: () => { if (document.fullscreenElement) return 1; },  
- 275125: () => { return Module.canvas.width; },  
- 275157: () => { return screen.width; },  
- 275182: () => { document.exitFullscreen(); },  
- 275209: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
- 275403: () => { return window.innerWidth; },  
- 275429: () => { return window.innerHeight; },  
- 275456: () => { if (document.fullscreenElement) return 1; },  
- 275502: () => { return Module.canvas.width; },  
- 275534: () => { return parseInt(Module.canvas.style.width); },  
- 275582: () => { if (document.fullscreenElement) return 1; },  
- 275628: () => { return Module.canvas.width; },  
- 275660: () => { return screen.width; },  
- 275685: () => { return window.innerWidth; },  
- 275711: () => { return window.innerHeight; },  
- 275738: () => { if (document.fullscreenElement) return 1; },  
- 275784: () => { return Module.canvas.width; },  
- 275816: () => { return screen.width; },  
- 275841: () => { document.exitFullscreen(); },  
- 275868: () => { if (document.fullscreenElement) return 1; },  
- 275914: () => { return Module.canvas.width; },  
- 275946: () => { return parseInt(Module.canvas.style.width); },  
- 275994: () => { document.exitFullscreen(); },  
- 276021: ($0) => { Module.canvas.style.opacity = $0; },  
- 276059: () => { return screen.width; },  
- 276084: () => { return screen.height; },  
- 276110: () => { return window.screenX; },  
- 276137: () => { return window.screenY; },  
- 276164: () => { return window.devicePixelRatio; },  
- 276200: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 276253: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 276304: () => { Module.canvas.style.cursor = 'none'; },  
- 276341: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
- 276597: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 276648: () => { if (document.pointerLockElement) return 1; },  
- 276695: () => { if (document.fullscreenElement) return 1; },  
- 276741: () => { return window.innerWidth; },  
- 276767: () => { return window.innerHeight; }
+  276630: () => { if (document.fullscreenElement) return 1; },  
+ 276676: () => { return Module.canvas.width; },  
+ 276708: () => { return parseInt(Module.canvas.style.width); },  
+ 276756: () => { document.exitFullscreen(); },  
+ 276783: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
+ 276855: () => { if (document.fullscreenElement) return 1; },  
+ 276901: () => { return Module.canvas.width; },  
+ 276933: () => { return screen.width; },  
+ 276958: () => { document.exitFullscreen(); },  
+ 276985: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
+ 277179: () => { return window.innerWidth; },  
+ 277205: () => { return window.innerHeight; },  
+ 277232: () => { if (document.fullscreenElement) return 1; },  
+ 277278: () => { return Module.canvas.width; },  
+ 277310: () => { return parseInt(Module.canvas.style.width); },  
+ 277358: () => { if (document.fullscreenElement) return 1; },  
+ 277404: () => { return Module.canvas.width; },  
+ 277436: () => { return screen.width; },  
+ 277461: () => { return window.innerWidth; },  
+ 277487: () => { return window.innerHeight; },  
+ 277514: () => { if (document.fullscreenElement) return 1; },  
+ 277560: () => { return Module.canvas.width; },  
+ 277592: () => { return screen.width; },  
+ 277617: () => { document.exitFullscreen(); },  
+ 277644: () => { if (document.fullscreenElement) return 1; },  
+ 277690: () => { return Module.canvas.width; },  
+ 277722: () => { return parseInt(Module.canvas.style.width); },  
+ 277770: () => { document.exitFullscreen(); },  
+ 277797: ($0) => { Module.canvas.style.opacity = $0; },  
+ 277835: () => { return screen.width; },  
+ 277860: () => { return screen.height; },  
+ 277886: () => { return window.screenX; },  
+ 277913: () => { return window.screenY; },  
+ 277940: () => { return window.devicePixelRatio; },  
+ 277976: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 278029: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 278080: () => { Module.canvas.style.cursor = 'none'; },  
+ 278117: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
+ 278373: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 278424: () => { if (document.pointerLockElement) return 1; },  
+ 278471: () => { if (document.fullscreenElement) return 1; },  
+ 278517: () => { return window.innerWidth; },  
+ 278543: () => { return window.innerHeight; }
 };
 function SetCanvasIdJs(out,outSize) { var canvasId = "#" + Module.canvas.id; stringToUTF8(canvasId, out, outSize); }
 function __asyncjs__RequestClipboardData() { return Asyncify.handleAsync(async () => { if (navigator.clipboard && window.isSecureContext) { let items = await navigator.clipboard.read(); for (const item of items) { if (item.types.includes("text/plain")) { const blob = await item.getType("text/plain"); const text = await blob.text(); window._lastClipboardString = text; } else if (item.types.find(t => t.startsWith("image/"))) { const blob = await item.getType(item.types.find(t => t.startsWith("image/"))); const bitmap = await createImageBitmap(blob); const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height; const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data; window._lastImgWidth = canvas.width; window._lastImgHeight = canvas.height; window._lastImgData = imgData; } } } else console.warn("Clipboard read() requires HTTPS/Localhost"); }); }
@@ -9671,20 +9695,22 @@ function GetLastPastedText() { var str = window._lastClipboardString || ""; var 
 function GetLastPastedImage(width,height) { if (window._lastImgData) { const data = window._lastImgData; if (data.length > 0) { const ptr = _malloc(data.length); HEAPU8.set(data, ptr); if (width) setValue(width, window._lastImgWidth, 'i32'); if (height) setValue(height, window._lastImgHeight, 'i32'); window._lastImgData = null; return ptr; } } return 0; }
 
 // Imports from the Wasm binary.
-var _main_start = Module['_main_start'] = makeInvalidEarlyAccess('_main_start');
 var _default_context_ptr = Module['_default_context_ptr'] = makeInvalidEarlyAccess('_default_context_ptr');
-var _main_update = Module['_main_update'] = makeInvalidEarlyAccess('_main_update');
-var _malloc = makeInvalidEarlyAccess('_malloc');
 var _free = makeInvalidEarlyAccess('_free');
-var _main_end = Module['_main_end'] = makeInvalidEarlyAccess('_main_end');
+var _malloc = makeInvalidEarlyAccess('_malloc');
 var __start = Module['__start'] = makeInvalidEarlyAccess('__start');
+var __end = Module['__end'] = makeInvalidEarlyAccess('__end');
+var _main_start = Module['_main_start'] = makeInvalidEarlyAccess('_main_start');
+var _main_update = Module['_main_update'] = makeInvalidEarlyAccess('_main_update');
+var _main_end = Module['_main_end'] = makeInvalidEarlyAccess('_main_end');
 var _web_window_size_changed = Module['_web_window_size_changed'] = makeInvalidEarlyAccess('_web_window_size_changed');
 var _main_flush_workspace = Module['_main_flush_workspace'] = makeInvalidEarlyAccess('_main_flush_workspace');
-var __end = Module['__end'] = makeInvalidEarlyAccess('__end');
 var _web_transfer_alloc = Module['_web_transfer_alloc'] = makeInvalidEarlyAccess('_web_transfer_alloc');
+var _web_clipboard_changed = Module['_web_clipboard_changed'] = makeInvalidEarlyAccess('_web_clipboard_changed');
 var _web_register_file = Module['_web_register_file'] = makeInvalidEarlyAccess('_web_register_file');
 var _web_transfer_finished = Module['_web_transfer_finished'] = makeInvalidEarlyAccess('_web_transfer_finished');
 var _web_read_completed = Module['_web_read_completed'] = makeInvalidEarlyAccess('_web_read_completed');
+var _web_write_completed = Module['_web_write_completed'] = makeInvalidEarlyAccess('_web_write_completed');
 var _fflush = makeInvalidEarlyAccess('_fflush');
 var _emscripten_stack_get_end = makeInvalidEarlyAccess('_emscripten_stack_get_end');
 var _emscripten_stack_get_base = makeInvalidEarlyAccess('_emscripten_stack_get_base');
@@ -9700,20 +9726,22 @@ var wasmMemory = makeInvalidEarlyAccess('wasmMemory');
 var wasmTable = makeInvalidEarlyAccess('wasmTable');
 
 function assignWasmExports(wasmExports) {
-  assert(typeof wasmExports['main_start'] != 'undefined', 'missing Wasm export: main_start');
   assert(typeof wasmExports['default_context_ptr'] != 'undefined', 'missing Wasm export: default_context_ptr');
-  assert(typeof wasmExports['main_update'] != 'undefined', 'missing Wasm export: main_update');
-  assert(typeof wasmExports['malloc'] != 'undefined', 'missing Wasm export: malloc');
   assert(typeof wasmExports['free'] != 'undefined', 'missing Wasm export: free');
-  assert(typeof wasmExports['main_end'] != 'undefined', 'missing Wasm export: main_end');
+  assert(typeof wasmExports['malloc'] != 'undefined', 'missing Wasm export: malloc');
   assert(typeof wasmExports['_start'] != 'undefined', 'missing Wasm export: _start');
+  assert(typeof wasmExports['_end'] != 'undefined', 'missing Wasm export: _end');
+  assert(typeof wasmExports['main_start'] != 'undefined', 'missing Wasm export: main_start');
+  assert(typeof wasmExports['main_update'] != 'undefined', 'missing Wasm export: main_update');
+  assert(typeof wasmExports['main_end'] != 'undefined', 'missing Wasm export: main_end');
   assert(typeof wasmExports['web_window_size_changed'] != 'undefined', 'missing Wasm export: web_window_size_changed');
   assert(typeof wasmExports['main_flush_workspace'] != 'undefined', 'missing Wasm export: main_flush_workspace');
-  assert(typeof wasmExports['_end'] != 'undefined', 'missing Wasm export: _end');
   assert(typeof wasmExports['web_transfer_alloc'] != 'undefined', 'missing Wasm export: web_transfer_alloc');
+  assert(typeof wasmExports['web_clipboard_changed'] != 'undefined', 'missing Wasm export: web_clipboard_changed');
   assert(typeof wasmExports['web_register_file'] != 'undefined', 'missing Wasm export: web_register_file');
   assert(typeof wasmExports['web_transfer_finished'] != 'undefined', 'missing Wasm export: web_transfer_finished');
   assert(typeof wasmExports['web_read_completed'] != 'undefined', 'missing Wasm export: web_read_completed');
+  assert(typeof wasmExports['web_write_completed'] != 'undefined', 'missing Wasm export: web_write_completed');
   assert(typeof wasmExports['fflush'] != 'undefined', 'missing Wasm export: fflush');
   assert(typeof wasmExports['emscripten_stack_get_end'] != 'undefined', 'missing Wasm export: emscripten_stack_get_end');
   assert(typeof wasmExports['emscripten_stack_get_base'] != 'undefined', 'missing Wasm export: emscripten_stack_get_base');
@@ -9725,20 +9753,22 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['emscripten_stack_get_current'] != 'undefined', 'missing Wasm export: emscripten_stack_get_current');
   assert(typeof wasmExports['memory'] != 'undefined', 'missing Wasm export: memory');
   assert(typeof wasmExports['__indirect_function_table'] != 'undefined', 'missing Wasm export: __indirect_function_table');
-  _main_start = Module['_main_start'] = createExportWrapper('main_start', wasmExports['main_start'], 0);
   _default_context_ptr = Module['_default_context_ptr'] = createExportWrapper('default_context_ptr', wasmExports['default_context_ptr'], 0);
-  _main_update = Module['_main_update'] = createExportWrapper('main_update', wasmExports['main_update'], 0);
-  _malloc = createExportWrapper('malloc', wasmExports['malloc'], 1);
   _free = createExportWrapper('free', wasmExports['free'], 1);
-  _main_end = Module['_main_end'] = createExportWrapper('main_end', wasmExports['main_end'], 0);
+  _malloc = createExportWrapper('malloc', wasmExports['malloc'], 1);
   __start = Module['__start'] = createExportWrapper('_start', wasmExports['_start'], 0);
+  __end = Module['__end'] = createExportWrapper('_end', wasmExports['_end'], 0);
+  _main_start = Module['_main_start'] = createExportWrapper('main_start', wasmExports['main_start'], 0);
+  _main_update = Module['_main_update'] = createExportWrapper('main_update', wasmExports['main_update'], 0);
+  _main_end = Module['_main_end'] = createExportWrapper('main_end', wasmExports['main_end'], 0);
   _web_window_size_changed = Module['_web_window_size_changed'] = createExportWrapper('web_window_size_changed', wasmExports['web_window_size_changed'], 3);
   _main_flush_workspace = Module['_main_flush_workspace'] = createExportWrapper('main_flush_workspace', wasmExports['main_flush_workspace'], 0);
-  __end = Module['__end'] = createExportWrapper('_end', wasmExports['_end'], 0);
   _web_transfer_alloc = Module['_web_transfer_alloc'] = createExportWrapper('web_transfer_alloc', wasmExports['web_transfer_alloc'], 1);
+  _web_clipboard_changed = Module['_web_clipboard_changed'] = createExportWrapper('web_clipboard_changed', wasmExports['web_clipboard_changed'], 2);
   _web_register_file = Module['_web_register_file'] = createExportWrapper('web_register_file', wasmExports['web_register_file'], 4);
   _web_transfer_finished = Module['_web_transfer_finished'] = createExportWrapper('web_transfer_finished', wasmExports['web_transfer_finished'], 0);
   _web_read_completed = Module['_web_read_completed'] = createExportWrapper('web_read_completed', wasmExports['web_read_completed'], 4);
+  _web_write_completed = Module['_web_write_completed'] = createExportWrapper('web_write_completed', wasmExports['web_write_completed'], 6);
   _fflush = createExportWrapper('fflush', wasmExports['fflush'], 1);
   _emscripten_stack_get_end = wasmExports['emscripten_stack_get_end'];
   _emscripten_stack_get_base = wasmExports['emscripten_stack_get_base'];
@@ -10330,13 +10360,21 @@ var wasmImports = {
   /** @export */
   tick_now: _tick_now,
   /** @export */
+  web_export_project: _web_export_project,
+  /** @export */
   web_pick_files: _web_pick_files,
+  /** @export */
+  web_read_file: _web_read_file,
+  /** @export */
+  web_set_clipboard_text: _web_set_clipboard_text,
   /** @export */
   web_storage_load: _web_storage_load,
   /** @export */
   web_storage_save: _web_storage_save,
   /** @export */
   web_storage_size: _web_storage_size,
+  /** @export */
+  web_write_file: _web_write_file,
   /** @export */
   write: _write
 };
