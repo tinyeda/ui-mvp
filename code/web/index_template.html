@@ -28,7 +28,7 @@
 	</style>
 </head>
 <body>
-	<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()" onmousedown="event.target.focus()" onkeydown="event.preventDefault()"></canvas>
+	<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()" onmousedown="event.target.focus()"></canvas>
 	<script src="odin.js"></script>
 	<script>
 		const odinMemoryInterface = new odin.WasmMemoryInterface();
@@ -42,17 +42,141 @@
 		const fileHandles = new Map();
 		const pathHandles = new Map();
 		let nextFileHandle = 1;
-		fileInput.addEventListener("change", async () => {
+		const projectDatabase = new Promise((resolve, reject) => {
+			const request = indexedDB.open("tinyeda-projects", 1);
+			request.onupgradeneeded = () => request.result.createObjectStore("files", {keyPath: "path"});
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+		const storeProjectFile = async (path, contents) => {
+			const database = await projectDatabase;
+			await new Promise((resolve, reject) => {
+				const transaction = database.transaction("files", "readwrite");
+				transaction.objectStore("files").put({path, contents});
+				transaction.oncomplete = resolve;
+				transaction.onerror = () => reject(transaction.error);
+			});
+		};
+		const registerProjectFile = (path, contents) => {
 			const encoder = new TextEncoder();
+			const encodedPath = encoder.encode(path);
+			const handle = pathHandles.get(path) ?? nextFileHandle++;
+			pathHandles.set(path, handle);
+			fileHandles.set(handle, contents);
+			const ptr = wasmExports.web_transfer_alloc(encodedPath.length);
+			new Uint8Array(wasmExports.memory.buffer, ptr, encodedPath.length).set(encodedPath);
+			wasmExports.web_register_file(ptr, encodedPath.length, BigInt(handle), BigInt(contents.size));
+		};
+		const restoreProjectFiles = async () => {
+			try {
+				const database = await projectDatabase;
+				const records = await new Promise((resolve, reject) => {
+					const request = database.transaction("files").objectStore("files").getAll();
+					request.onsuccess = () => resolve(request.result);
+					request.onerror = () => reject(request.error);
+				});
+				for (const {path, contents} of records) registerProjectFile(path, contents);
+				wasmExports.web_transfer_finished();
+			} catch (error) {
+				console.error("TinyEDA project restore failed", error);
+			}
+		};
+		const crc32Table = (() => {
+			const table = new Uint32Array(256);
+			for (let index = 0; index < table.length; index++) {
+				let value = index;
+				for (let bit = 0; bit < 8; bit++) {
+					value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+				}
+				table[index] = value >>> 0;
+			}
+			return table;
+		})();
+		const crc32 = (bytes) => {
+			let value = 0xffffffff;
+			for (const byte of bytes) value = crc32Table[(value ^ byte) & 0xff] ^ (value >>> 8);
+			return (value ^ 0xffffffff) >>> 0;
+		};
+		const createProjectZip = async (records) => {
+			const localParts = [];
+			const centralParts = [];
+			let localOffset = 0;
+			for (const {path, contents} of records) {
+				const name = textEncoder.encode(path.replace(/^\/+/, ""));
+				const data = new Uint8Array(await contents.arrayBuffer());
+				if (name.length > 0xffff || data.length > 0xffffffff || localOffset > 0xffffffff) {
+					throw new Error("Project is too large for ZIP export");
+				}
+				const checksum = crc32(data);
+				const localHeader = new Uint8Array(30 + name.length);
+				const localView = new DataView(localHeader.buffer);
+				localView.setUint32(0, 0x04034b50, true);
+				localView.setUint16(4, 20, true);
+				localView.setUint16(6, 0x0800, true);
+				localView.setUint32(14, checksum, true);
+				localView.setUint32(18, data.length, true);
+				localView.setUint32(22, data.length, true);
+				localView.setUint16(26, name.length, true);
+				localHeader.set(name, 30);
+
+				const centralHeader = new Uint8Array(46 + name.length);
+				const centralView = new DataView(centralHeader.buffer);
+				centralView.setUint32(0, 0x02014b50, true);
+				centralView.setUint16(4, 20, true);
+				centralView.setUint16(6, 20, true);
+				centralView.setUint16(8, 0x0800, true);
+				centralView.setUint32(16, checksum, true);
+				centralView.setUint32(20, data.length, true);
+				centralView.setUint32(24, data.length, true);
+				centralView.setUint16(28, name.length, true);
+				centralView.setUint32(42, localOffset, true);
+				centralHeader.set(name, 46);
+
+				localParts.push(localHeader, data);
+				centralParts.push(centralHeader);
+				localOffset += localHeader.length + data.length;
+			}
+			if (records.length > 0xffff) throw new Error("Project has too many files for ZIP export");
+			const centralSize = centralParts.reduce((size, part) => size + part.length, 0);
+			const end = new Uint8Array(22);
+			const endView = new DataView(end.buffer);
+			endView.setUint32(0, 0x06054b50, true);
+			endView.setUint16(8, records.length, true);
+			endView.setUint16(10, records.length, true);
+			endView.setUint32(12, centralSize, true);
+			endView.setUint32(16, localOffset, true);
+			return new Blob([...localParts, ...centralParts, end], {type: "application/zip"});
+		};
+		const webExportProject = () => {
+			void (async () => {
+				try {
+					const database = await projectDatabase;
+					const records = await new Promise((resolve, reject) => {
+						const request = database.transaction("files").objectStore("files").getAll();
+						request.onsuccess = () => resolve(request.result);
+						request.onerror = () => reject(request.error);
+					});
+					const zip = await createProjectZip(records);
+					const link = document.createElement("a");
+					const url = URL.createObjectURL(zip);
+					link.href = url;
+					link.download = "tinyeda-project.zip";
+					link.click();
+					setTimeout(() => URL.revokeObjectURL(url), 60000);
+				} catch (error) {
+					console.error("TinyEDA project export failed", error);
+				}
+			})();
+		};
+		fileInput.addEventListener("change", async () => {
 			for (const file of fileInput.files) {
 				const relativePath = file.webkitRelativePath || file.name;
-				const path = encoder.encode(relativePath);
-				const handle = pathHandles.get(relativePath) ?? nextFileHandle++;
-				pathHandles.set(relativePath, handle);
-				fileHandles.set(handle, file);
-				const ptr = wasmExports.web_transfer_alloc(path.length);
-				new Uint8Array(wasmExports.memory.buffer, ptr, path.length).set(path);
-				wasmExports.web_register_file(ptr, path.length, BigInt(handle), BigInt(file.size));
+				registerProjectFile(relativePath, file);
+				try {
+					await storeProjectFile(relativePath, file);
+				} catch (error) {
+					console.error("TinyEDA project import failed", error);
+				}
 			}
 			wasmExports.web_transfer_finished();
 			fileInput.value = "";
@@ -79,6 +203,34 @@
 					wasmExports.web_read_completed(requestId, ptr, 0, 0);
 				}
 			})();
+		};
+		const webWriteFile = (pathPtr, pathLength, dataPtr, dataLength, requestId) => {
+			const path = textDecoder.decode(new Uint8Array(wasmExports.memory.buffer, pathPtr, pathLength));
+			const contents = new Blob([new Uint8Array(wasmExports.memory.buffer, dataPtr, dataLength).slice()]);
+			const handle = pathHandles.get(path) ?? nextFileHandle++;
+			pathHandles.set(path, handle);
+			fileHandles.set(handle, contents);
+			void (async () => {
+				let success = 0;
+				try {
+					await storeProjectFile(path.replace(/^\/workspace\//, ""), contents);
+					success = 1;
+				} catch (error) {
+					console.error("TinyEDA project save failed", error);
+				}
+				const encodedPath = textEncoder.encode(path.replace(/^\/workspace\//, ""));
+				const ptr = wasmExports.web_transfer_alloc(encodedPath.length);
+				new Uint8Array(wasmExports.memory.buffer, ptr, encodedPath.length).set(encodedPath);
+				wasmExports.web_write_completed(requestId, ptr, encodedPath.length, BigInt(handle), BigInt(contents.size), success);
+			})();
+		};
+		const webSetClipboardText = (dataPtr, dataLength) => {
+			const text = textDecoder.decode(new Uint8Array(wasmExports.memory.buffer, dataPtr, dataLength));
+			if (navigator.clipboard?.writeText) {
+				void navigator.clipboard.writeText(text).catch((error) => {
+					console.warn("TinyEDA clipboard write failed", error);
+				});
+			}
 		};
 		const workspaceStorageKeys = ["tinyeda.workspace.v1", "tinyeda.imgui.v1"];
 		const textEncoder = new TextEncoder();
@@ -114,6 +266,9 @@
 			instantiateWasm: (imports, successCallback) => {
 				imports.env.web_pick_files = webPickFiles;
 				imports.env.web_read_file = webReadFile;
+				imports.env.web_write_file = webWriteFile;
+				imports.env.web_export_project = webExportProject;
+				imports.env.web_set_clipboard_text = webSetClipboardText;
 				imports.env.web_storage_size = webStorageSize;
 				imports.env.web_storage_load = webStorageLoad;
 				imports.env.web_storage_save = webStorageSave;
@@ -130,6 +285,7 @@
 				const canvas = document.getElementById("canvas");
 				exports._start();
 				exports.main_start();
+				void restoreProjectFiles();
 				let appRunning = true;
 				const flushWorkspace = () => {
 					if (appRunning) exports.main_flush_workspace();
@@ -167,6 +323,16 @@
 				};
 				window.addEventListener("resize", sendResize, true);
 				sendResize();
+				window.addEventListener("paste", (event) => {
+					if (document.activeElement !== canvas) return;
+					const text = event.clipboardData?.getData("text/plain");
+					if (text === undefined) return;
+					const data = textEncoder.encode(text);
+					const ptr = exports.web_transfer_alloc(data.length);
+					new Uint8Array(exports.memory.buffer, ptr, data.length).set(data);
+					exports.web_clipboard_changed(ptr, data.length);
+					event.preventDefault();
+				});
 
 				let updateInProgress = false;
 				const updateApp = () => {

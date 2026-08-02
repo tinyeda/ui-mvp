@@ -41,6 +41,7 @@ panel_kind_key :: proc(kind: Panel_Kind) -> string {
 	switch kind {
 	case .Welcome:          return "welcome"
 	case .Project_Explorer: return "project_explorer"
+	case .Text_Editor:      return "text_editor"
 	case .Schematic:        return "schematic"
 	case .Layout:           return "layout"
 	case .Console:          return "console"
@@ -52,6 +53,7 @@ panel_kind_from_key :: proc(key: string) -> (Panel_Kind, bool) {
 	switch key {
 	case "welcome":          return .Welcome, true
 	case "project_explorer": return .Project_Explorer, true
+	case "text_editor":      return .Text_Editor, true
 	case "schematic":        return .Schematic, true
 	case "layout":           return .Layout, true
 	case "console":          return .Console, true
