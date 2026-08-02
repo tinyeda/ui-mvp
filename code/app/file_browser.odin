@@ -1,7 +1,6 @@
 package app
 
 import "core:fmt"
-import "core:slice"
 import "core:strings"
 import "../../third-party/imgui"
 
@@ -229,8 +228,7 @@ Web_Register_File :: proc(path: []byte, handle: File_Handle, size: u64) {
 
 Web_Read_Completed :: proc(request_id: u64, data: []byte, ok: bool) {
 	when ODIN_OS == .JS {
-		owned_data := slice.clone(data)
-		fb_complete_read_owned(request_id, owned_data, ok)
+		fb_complete_read_owned(request_id, data, ok)
 	}
 }
 Web_Write_Completed :: proc(request_id: u64, path: []byte, handle: File_Handle, size: u64, ok: bool) {

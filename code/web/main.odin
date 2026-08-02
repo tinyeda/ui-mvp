@@ -80,6 +80,19 @@ web_transfer_alloc :: proc "c" (size: c.int) -> rawptr {
 }
 
 @export
+web_read_alloc :: proc "c" (size: c.int) -> rawptr {
+	context = web_context
+	if size <= 0 {
+		return nil
+	}
+	data, err := mem.alloc_bytes_non_zeroed(int(size), allocator = web_context.allocator)
+	if err != nil {
+		return nil
+	}
+	return raw_data(data)
+}
+
+@export
 web_clipboard_changed :: proc "c" (memory: rawptr, size: c.int) {
 	context = web_context
 	resize(&web_clipboard_buffer, int(size) + 1)
@@ -107,7 +120,6 @@ web_read_completed :: proc "c" (request_id: u64, memory: rawptr, size, success: 
 	context = web_context
 	data := ([^]byte)(memory)[:int(size)]
 	app.Web_Read_Completed(request_id, data, success != 0)
-	free(memory)
 }
 
 @export
