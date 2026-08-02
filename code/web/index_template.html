@@ -42,21 +42,26 @@
 		const fileHandles = new Map();
 		const pathHandles = new Map();
 		let nextFileHandle = 1;
+		const importBatchFileLimit = 250;
+		const importBatchByteLimit = 16 * 1024 * 1024;
 		const projectDatabase = new Promise((resolve, reject) => {
 			const request = indexedDB.open("tinyeda-projects", 1);
 			request.onupgradeneeded = () => request.result.createObjectStore("files", {keyPath: "path"});
 			request.onsuccess = () => resolve(request.result);
 			request.onerror = () => reject(request.error);
 		});
-		const storeProjectFile = async (path, contents) => {
+		const storeProjectFiles = async (records) => {
 			const database = await projectDatabase;
 			await new Promise((resolve, reject) => {
 				const transaction = database.transaction("files", "readwrite");
-				transaction.objectStore("files").put({path, contents});
+				const store = transaction.objectStore("files");
+				for (const record of records) store.put(record);
 				transaction.oncomplete = resolve;
 				transaction.onerror = () => reject(transaction.error);
+				transaction.onabort = () => reject(transaction.error);
 			});
 		};
+		const storeProjectFile = (path, contents) => storeProjectFiles([{path, contents}]);
 		const registerProjectFile = (path, contents) => {
 			const encoder = new TextEncoder();
 			const encodedPath = encoder.encode(path);
@@ -169,14 +174,28 @@
 			})();
 		};
 		fileInput.addEventListener("change", async () => {
-			for (const file of fileInput.files) {
-				const relativePath = file.webkitRelativePath || file.name;
-				registerProjectFile(relativePath, file);
+			const files = Array.from(fileInput.files, (file) => ({
+				path: file.webkitRelativePath || file.name,
+				contents: file,
+			}));
+			for (let start = 0; start < files.length;) {
+				let end = start;
+				let batchBytes = 0;
+				while (end < files.length && end - start < importBatchFileLimit) {
+					const nextSize = files[end].contents.size;
+					if (end > start && batchBytes + nextSize > importBatchByteLimit) break;
+					batchBytes += nextSize;
+					end++;
+				}
+				const batch = files.slice(start, end);
 				try {
-					await storeProjectFile(relativePath, file);
+					await storeProjectFiles(batch);
+					for (const {path, contents} of batch) registerProjectFile(path, contents);
 				} catch (error) {
 					console.error("TinyEDA project import failed", error);
 				}
+				start = end;
+				await new Promise((resolve) => requestAnimationFrame(resolve));
 			}
 			wasmExports.web_transfer_finished();
 			fileInput.value = "";
