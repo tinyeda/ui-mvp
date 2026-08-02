@@ -2,21 +2,24 @@ name: Build and deploy web
 
 on:
   push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, closed]
+  delete:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
+  pull-requests: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
+    if: >-
+      github.event_name != 'delete' &&
+      (github.event_name != 'pull_request' || github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -37,24 +40,47 @@ jobs:
       - name: Build web application
         run: ./build_web.sh
 
-      - name: Configure GitHub Pages
-        if: github.event_name != 'pull_request'
-        uses: actions/configure-pages@v5
-
-      - name: Upload GitHub Pages artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy production
+        if: github.event_name != 'pull_request' && github.ref_name == 'main'
+        uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f # v4
         with:
-          path: build/web
+          branch: gh-pages
+          folder: build/web
+          clean: false
 
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
+      - name: Deploy preview
+        if: >-
+          (github.event_name == 'pull_request' &&
+           github.event.pull_request.head.repo.full_name == github.repository) ||
+          (github.event_name != 'pull_request' && github.ref_name != 'main')
+        uses: rajyan/preview-pages@4fdab7d665d506f4dd2092bc9897ef707888071a # v1.3.37
+        with:
+          source-dir: build/web
+          pr-per-commit: false
+          pr-comment: sticky
+          branch-per-commit: false
+          branch-comment: none
+
+  clean-up:
+    if: >-
+      (github.event_name == 'pull_request' && github.event.action == 'closed') ||
+      (github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref != 'main')
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      PREVIEW_DIR: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.event.ref }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Checkout published site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Remove preview
+        run: |
+          rm -rf -- "$PREVIEW_DIR"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add --all
+          if ! git diff --cached --quiet; then
+            git commit -m "Remove preview for $PREVIEW_DIR"
+            git push
+          fi

@@ -58,4 +58,6 @@ Then open <http://localhost:8000>. The generated files in `build/web` are static
 
 ### Deploy to GitHub Pages
 
-Pushes to `main` build and deploy the web application through `.github/workflows/pages.yml`. Pull requests run the same web build without deploying it. Before the first deployment, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**.
+Pushes to `main` build and deploy the production application through `.github/workflows/pages.yml`. Other branches deploy to `/<branch-name>/`, and pull requests deploy to `/pr-<number>/` with a sticky preview link added to the pull request. Branch previews are replaced on every push and removed when the branch is deleted; pull request previews are removed when the pull request closes.
+
+Before the first deployment, set **Settings → Pages → Build and deployment → Source** to **Deploy from a branch**, then select the `gh-pages` branch and `/ (root)` directory.
