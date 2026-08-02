@@ -17,6 +17,7 @@ trap 'rm -f "$OBJECT"' EXIT
 odin build "$ROOT_DIR/code/web" \
 	-target:js_wasm32 \
 	-build-mode:obj \
+	-o:size \
 	-define:RAYLIB_WASM_LIB=env.o \
 	-define:IMGUI_WASM_LIB=env.o \
 	-out:"$OBJECT"
