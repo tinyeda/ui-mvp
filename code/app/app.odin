@@ -80,9 +80,10 @@ Running :: proc() -> bool {
 	return running
 }
 
-Resize :: proc(width, height: int) {
+Resize :: proc(width, height: int, display_scale: f32 = 1.0) {
 	if width > 0 && height > 0 {
 		rl.SetWindowSize(c.int(width), c.int(height))
+		ui_display_scale_set(display_scale)
 	}
 }
 

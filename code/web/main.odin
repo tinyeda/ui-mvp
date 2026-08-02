@@ -33,9 +33,9 @@ main_end :: proc "c" () {
 }
 
 @export
-web_window_size_changed :: proc "c" (width, height: c.int) {
+web_window_size_changed :: proc "c" (width, height: c.int, display_scale: f32) {
 	context = web_context
-	app.Resize(int(width), int(height))
+	app.Resize(int(width), int(height), display_scale)
 }
 
 @export
