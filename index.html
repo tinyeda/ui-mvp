@@ -17,7 +17,8 @@
 		}
 		canvas {
 			display: block;
-			margin: auto;
+			width: 100%;
+			height: 100%;
 			border: 0;
 		}
 	</style>
@@ -134,13 +135,35 @@
 					if (document.visibilityState === "hidden") flushWorkspace();
 				});
 
+				let lastCssWidth = 0;
+				let lastCssHeight = 0;
+				let lastDevicePixelRatio = 0;
 				const sendResize = () => {
-					exports.web_window_size_changed(canvas.width, canvas.height);
+					const cssWidth = Math.max(1, document.documentElement.clientWidth);
+					const cssHeight = Math.max(1, document.documentElement.clientHeight);
+					const devicePixelRatio = Math.max(0.1, window.devicePixelRatio || 1);
+					if (cssWidth === lastCssWidth &&
+						cssHeight === lastCssHeight &&
+						devicePixelRatio === lastDevicePixelRatio) return;
+
+					lastCssWidth = cssWidth;
+					lastCssHeight = cssHeight;
+					lastDevicePixelRatio = devicePixelRatio;
+					canvas.style.width = `${cssWidth}px`;
+					canvas.style.height = `${cssHeight}px`;
+					// Raylib's web backend treats its window size as its framebuffer
+					// size. Render in device pixels and keep CSS as the logical size.
+					exports.web_window_size_changed(
+						Math.max(1, Math.round(cssWidth * devicePixelRatio)),
+						Math.max(1, Math.round(cssHeight * devicePixelRatio)),
+						devicePixelRatio,
+					);
 				};
 				window.addEventListener("resize", sendResize, true);
 				sendResize();
 
 				const frame = () => {
+					sendResize();
 					if (!exports.main_update()) {
 						appRunning = false;
 						exports.main_end();
