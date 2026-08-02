@@ -29,9 +29,89 @@
 		const odinMemoryInterface = new odin.WasmMemoryInterface();
 		odinMemoryInterface.setIntSize(4);
 		const odinImports = odin.setupDefaultImports(odinMemoryInterface);
+		const fileInput = document.createElement("input");
+		fileInput.type = "file";
+		fileInput.multiple = true;
+		fileInput.hidden = true;
+		document.body.appendChild(fileInput);
+		const fileHandles = new Map();
+		const pathHandles = new Map();
+		let nextFileHandle = 1;
+		fileInput.addEventListener("change", async () => {
+			const encoder = new TextEncoder();
+			for (const file of fileInput.files) {
+				const relativePath = file.webkitRelativePath || file.name;
+				const path = encoder.encode(relativePath);
+				const handle = pathHandles.get(relativePath) ?? nextFileHandle++;
+				pathHandles.set(relativePath, handle);
+				fileHandles.set(handle, file);
+				const ptr = wasmExports.web_transfer_alloc(path.length);
+				new Uint8Array(wasmExports.memory.buffer, ptr, path.length).set(path);
+				wasmExports.web_register_file(ptr, path.length, BigInt(handle), BigInt(file.size));
+			}
+			wasmExports.web_transfer_finished();
+			fileInput.value = "";
+		});
+		const webPickFiles = (folder) => {
+			if (folder !== 0) fileInput.setAttribute("webkitdirectory", "");
+			else fileInput.removeAttribute("webkitdirectory");
+			fileInput.click();
+		};
+		const webReadFile = (handle, offset, length, requestId) => {
+			void (async () => {
+				let ptr = 0;
+				try {
+					const file = fileHandles.get(Number(handle));
+					const start = Number(offset);
+					if (!file || !Number.isSafeInteger(start) || start < 0) throw new Error("Invalid file read");
+					const end = Math.min(start + Number(length), file.size);
+					const contents = new Uint8Array(await file.slice(start, end).arrayBuffer());
+					ptr = wasmExports.web_transfer_alloc(contents.length);
+					new Uint8Array(wasmExports.memory.buffer, ptr, contents.length).set(contents);
+					wasmExports.web_read_completed(requestId, ptr, contents.length, 1);
+				} catch (error) {
+					console.error("TinyEDA file read failed", error);
+					wasmExports.web_read_completed(requestId, ptr, 0, 0);
+				}
+			})();
+		};
+		const workspaceStorageKeys = ["tinyeda.workspace.v1", "tinyeda.imgui.v1"];
+		const textEncoder = new TextEncoder();
+		const textDecoder = new TextDecoder();
+		const webStorageBytes = (kind) => {
+			try {
+				const value = localStorage.getItem(workspaceStorageKeys[kind]);
+				return value === null ? null : textEncoder.encode(value);
+			} catch (error) {
+				console.error("TinyEDA workspace load failed", error);
+				return null;
+			}
+		};
+		const webStorageSize = (kind) => webStorageBytes(kind)?.length ?? -1;
+		const webStorageLoad = (kind, ptr, capacity) => {
+			const data = webStorageBytes(kind);
+			if (data === null || data.length !== capacity) return -1;
+			new Uint8Array(wasmExports.memory.buffer, ptr, capacity).set(data);
+			return capacity;
+		};
+		const webStorageSave = (kind, ptr, size) => {
+			try {
+				const data = new Uint8Array(wasmExports.memory.buffer, ptr, size);
+				localStorage.setItem(workspaceStorageKeys[kind], textDecoder.decode(data));
+				return 1;
+			} catch (error) {
+				console.error("TinyEDA workspace save failed", error);
+				return 0;
+			}
+		};
 
 		var Module = {
 			instantiateWasm: (imports, successCallback) => {
+				imports.env.web_pick_files = webPickFiles;
+				imports.env.web_read_file = webReadFile;
+				imports.env.web_storage_size = webStorageSize;
+				imports.env.web_storage_load = webStorageLoad;
+				imports.env.web_storage_save = webStorageSave;
 				const mergedImports = {...odinImports, ...imports};
 				return WebAssembly.instantiateStreaming(fetch("index.wasm"), mergedImports).then((output) => {
 					const exports = output.instance.exports;
@@ -45,6 +125,14 @@
 				const canvas = document.getElementById("canvas");
 				exports._start();
 				exports.main_start();
+				let appRunning = true;
+				const flushWorkspace = () => {
+					if (appRunning) exports.main_flush_workspace();
+				};
+				window.addEventListener("pagehide", flushWorkspace);
+				document.addEventListener("visibilitychange", () => {
+					if (document.visibilityState === "hidden") flushWorkspace();
+				});
 
 				const sendResize = () => {
 					exports.web_window_size_changed(canvas.width, canvas.height);
@@ -54,6 +142,7 @@
 
 				const frame = () => {
 					if (!exports.main_update()) {
+						appRunning = false;
 						exports.main_end();
 						exports._end();
 						return;

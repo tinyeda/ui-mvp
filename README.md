@@ -26,6 +26,8 @@ The application uses Odin's `vendor:raylib` package as its platform and renderer
 
 The shared application lifecycle and UI live in `code/app`. Desktop and web have small entry points that provide their different main-loop and runtime setup, while calling the same `app.Init`, `app.Frame`, and `app.Shutdown` procedures.
 
+Panel inventory and Dear ImGui's docking layout are restored across runs. Native builds save `workspace.json` and `imgui.ini` under the operating system's per-user configuration directory in a `TinyEDA` folder. Web builds store the equivalent data in the site's browser `localStorage`. Packaged application resources remain read-only; user layout changes are always written to per-user storage.
+
 ### Run on desktop
 
 Clone the ui-mvp repository and download lfs objects:
@@ -56,4 +58,6 @@ Then open <http://localhost:8000>. The generated files in `build/web` are static
 
 ### Deploy to GitHub Pages
 
-Pushes to `main` build and deploy the web application through `.github/workflows/pages.yml`. Pull requests run the same web build without deploying it. Before the first deployment, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**.
+Pushes to `main` build and deploy the production application through `.github/workflows/pages.yml`. Other branches deploy to `/<branch-name>/`, and pull requests deploy to `/pr-<number>/` with a sticky preview link added to the pull request. Branch previews are replaced on every push and removed when the branch is deleted; pull request previews are removed when the pull request closes.
+
+Before the first deployment, set **Settings → Pages → Build and deployment → Source** to **Deploy from a branch**, then select the `gh-pages` branch and `/ (root)` directory.

@@ -3839,6 +3839,7 @@ foreign imguilib {
 	PlatformIO_SetPlatform_GetWindowSize :: proc(
 		getWindowSizeFunc: proc "c" (vp: ^Viewport, result: ^Vec2)) ---
 	// Scale all spacing/padding/thickness values. Do not scale fonts. See comments in definition. Consider not calling this if your initial scale factor if <1.0.
+	@(link_name = "ImGuiStyle_ScaleAllSizes")
 	Style_ScaleAllSizes :: proc(
 		self: ^Style,
 		scale_factor: f32) ---
@@ -4654,6 +4655,7 @@ foreign imguilib {
 		font_cfg: ^FontConfig = nil,
 		glyph_ranges: ^Wchar = nil) -> ^Font ---
 	// Note: Transfer ownership of 'ttf_data' to ImFontAtlas! Will be deleted after destruction of the atlas. Set font_cfg->FontDataOwnedByAtlas=false to keep ownership of your data and it won't be freed.
+	@(link_name = "ImFontAtlas_AddFontFromMemoryTTF")
 	FontAtlas_AddFontFromMemoryTTF :: proc(
 		self: ^FontAtlas,
 		font_data: rawptr,

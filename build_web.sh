@@ -35,6 +35,10 @@ em++ -o "$OUT_DIR/index.html" \
 	-sEXPORTED_RUNTIME_METHODS='["HEAPF32"]' \
 	--shell-file "$ROOT_DIR/code/web/index_template.html"
 
+mkdir -p "$OUT_DIR/licenses"
+cp "$ROOT_DIR/third-party/fonts/atkinson-hyperlegible-next/OFL.txt" \
+	"$OUT_DIR/licenses/Atkinson-Hyperlegible-Next-OFL.txt"
+
 node - "$OUT_DIR/index.wasm" <<'NODE'
 const fs = require("fs");
 const path = process.argv[2];
