@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 	<meta name="title" content="TinyEDA">
 	<meta name="description" content="TinyEDA studio UI">
 	<link rel="icon" href="data:,">
@@ -40,11 +40,11 @@
 		fileInput.hidden = true;
 		document.body.appendChild(fileInput);
 		const mobileTextInput = document.createElement("textarea");
-		mobileTextInput.setAttribute("aria-hidden", "true");
 		mobileTextInput.setAttribute("autocapitalize", "off");
 		mobileTextInput.setAttribute("autocomplete", "off");
+		mobileTextInput.setAttribute("inputmode", "text");
 		mobileTextInput.setAttribute("spellcheck", "false");
-		mobileTextInput.style.cssText = "position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1";
+		mobileTextInput.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;font-size:16px;opacity:0;pointer-events:none";
 		document.body.appendChild(mobileTextInput);
 		const hasMobileKeyboard = navigator.maxTouchPoints > 0 && matchMedia("(pointer: coarse)").matches;
 		const fileHandles = new Map();
@@ -410,16 +410,24 @@
 						exports.main_end();
 						exports._end();
 					}
-					if (hasMobileKeyboard) {
-						const wantsTextInput = exports.web_wants_text_input() !== 0;
-						if (wantsTextInput && document.activeElement !== mobileTextInput) {
-							mobileTextInput.value = "";
-							mobileTextInput.focus({preventScroll: true});
-						} else if (!wantsTextInput && document.activeElement === mobileTextInput) {
-							mobileTextInput.blur();
-						}
+					if (hasMobileKeyboard &&
+						exports.web_wants_text_input() === 0 &&
+						document.activeElement === mobileTextInput) {
+						mobileTextInput.blur();
 					}
 					updateInProgress = false;
+				};
+				const updateTouchStart = () => {
+					// ImGui publishes WantTextInput on the frame after InputText is
+					// activated. Advance that frame while Safari still considers this
+					// call part of the trusted touch gesture.
+					updateApp();
+					updateApp();
+					if (exports.web_wants_text_input() !== 0 &&
+						document.activeElement !== mobileTextInput) {
+						mobileTextInput.value = "";
+						mobileTextInput.focus({preventScroll: true});
+					}
 				};
 				const frame = () => {
 					updateApp();
@@ -428,9 +436,10 @@
 				// Run immediate-mode press/release frames after raylib's canvas event
 				// handlers. The release frame remains on Safari's trusted event stack,
 				// allowing ImGui actions to open a native file picker synchronously.
-				for (const eventName of ["mousedown", "mouseup", "touchstart", "touchend"]) {
+				for (const eventName of ["mousedown", "mouseup", "touchend"]) {
 					window.addEventListener(eventName, updateApp, {passive: true});
 				}
+				canvas.addEventListener("touchstart", updateTouchStart, {passive: true});
 				canvas.addEventListener("dragstart", (event) => event.preventDefault());
 				canvas.addEventListener("touchmove", (event) => event.preventDefault(), {passive: false});
 				window.requestAnimationFrame(frame);
