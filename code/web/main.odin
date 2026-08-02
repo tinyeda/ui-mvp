@@ -93,6 +93,34 @@ web_read_alloc :: proc "c" (size: c.int) -> rawptr {
 }
 
 @export
+web_wants_text_input :: proc "c" () -> c.int {
+	context = web_context
+	return imgui.GetIO().WantTextInput ? 1 : 0
+}
+
+@export
+web_text_input :: proc "c" (memory: rawptr) {
+	context = web_context
+	imgui.IO_AddInputCharactersUTF8(imgui.GetIO(), cstring(memory))
+	free(memory)
+}
+
+@export
+web_text_key :: proc "c" (action: c.int) {
+	context = web_context
+	key: imgui.Key
+	switch action {
+	case 0: key = .Backspace
+	case 1: key = .Delete
+	case 2: key = .Enter
+	case: return
+	}
+	io := imgui.GetIO()
+	imgui.IO_AddKeyEvent(io, key, true)
+	imgui.IO_AddKeyEvent(io, key, false)
+}
+
+@export
 web_clipboard_changed :: proc "c" (memory: rawptr, size: c.int) {
 	context = web_context
 	resize(&web_clipboard_buffer, int(size) + 1)
