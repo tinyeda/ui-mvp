@@ -23,8 +23,10 @@ Init :: proc() -> bool {
 	imgui.Raylib_Setup(true)
 	io := imgui.GetIO()
 	io.ConfigFlags |= {.NavEnableKeyboard, .DockingEnable}
+	io.IniFilename = nil
+	io.IniSavingRate = 1.0
 	file_browser_init()
-	panels_init()
+	workspace_init()
 
 	running = true
 	return true
@@ -39,6 +41,7 @@ Frame :: proc() {
 	imgui.Raylib_End()
 
 	rl.EndDrawing()
+	workspace_update()
 	free_all(context.temp_allocator)
 }
 
@@ -57,9 +60,14 @@ Resize :: proc(width, height: int) {
 	}
 }
 
+Flush_Workspace :: proc() {
+	workspace_flush()
+}
+
 Shutdown :: proc() {
 	delete(latest_path)
 	latest_path = ""
+	workspace_shutdown()
 	panels_shutdown()
 	file_browser_shutdown()
 	if !rl.IsWindowReady() {

@@ -26,6 +26,8 @@ The application uses Odin's `vendor:raylib` package as its platform and renderer
 
 The shared application lifecycle and UI live in `code/app`. Desktop and web have small entry points that provide their different main-loop and runtime setup, while calling the same `app.Init`, `app.Frame`, and `app.Shutdown` procedures.
 
+Panel inventory and Dear ImGui's docking layout are restored across runs. Native builds save `workspace.json` and `imgui.ini` under the operating system's per-user configuration directory in a `TinyEDA` folder. Web builds store the equivalent data in the site's browser `localStorage`. Packaged application resources remain read-only; user layout changes are always written to per-user storage.
+
 ### Run on desktop
 
 Clone the ui-mvp repository and download lfs objects:

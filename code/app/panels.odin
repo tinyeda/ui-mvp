@@ -75,6 +75,7 @@ panel_add :: proc(kind: Panel_Kind) {
 		dock_once = true,
 	})
 	next_panel_id += 1
+	workspace_mark_dirty()
 }
 
 panel_add_menu_item :: proc(kind: Panel_Kind) {
@@ -150,6 +151,7 @@ panels_draw :: proc(dockspace_id: imgui.ID) {
 	for i := len(panels) - 1; i >= 0; i -= 1 {
 		if !panels[i].open {
 			ordered_remove(&panels, i)
+			workspace_mark_dirty()
 		}
 	}
 }

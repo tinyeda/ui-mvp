@@ -39,6 +39,12 @@ web_window_size_changed :: proc "c" (width, height: c.int) {
 }
 
 @export
+main_flush_workspace :: proc "c" () {
+	context = web_context
+	app.Flush_Workspace()
+}
+
+@export
 web_transfer_alloc :: proc "c" (size: c.int) -> rawptr {
 	return malloc(c.size_t(size))
 }

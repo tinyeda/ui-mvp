@@ -75,11 +75,43 @@
 				}
 			})();
 		};
+		const workspaceStorageKeys = ["tinyeda.workspace.v1", "tinyeda.imgui.v1"];
+		const textEncoder = new TextEncoder();
+		const textDecoder = new TextDecoder();
+		const webStorageBytes = (kind) => {
+			try {
+				const value = localStorage.getItem(workspaceStorageKeys[kind]);
+				return value === null ? null : textEncoder.encode(value);
+			} catch (error) {
+				console.error("TinyEDA workspace load failed", error);
+				return null;
+			}
+		};
+		const webStorageSize = (kind) => webStorageBytes(kind)?.length ?? -1;
+		const webStorageLoad = (kind, ptr, capacity) => {
+			const data = webStorageBytes(kind);
+			if (data === null || data.length !== capacity) return -1;
+			new Uint8Array(wasmExports.memory.buffer, ptr, capacity).set(data);
+			return capacity;
+		};
+		const webStorageSave = (kind, ptr, size) => {
+			try {
+				const data = new Uint8Array(wasmExports.memory.buffer, ptr, size);
+				localStorage.setItem(workspaceStorageKeys[kind], textDecoder.decode(data));
+				return 1;
+			} catch (error) {
+				console.error("TinyEDA workspace save failed", error);
+				return 0;
+			}
+		};
 
 		var Module = {
 			instantiateWasm: (imports, successCallback) => {
 				imports.env.web_pick_files = webPickFiles;
 				imports.env.web_read_file = webReadFile;
+				imports.env.web_storage_size = webStorageSize;
+				imports.env.web_storage_load = webStorageLoad;
+				imports.env.web_storage_save = webStorageSave;
 				const mergedImports = {...odinImports, ...imports};
 				return WebAssembly.instantiateStreaming(fetch("index.wasm"), mergedImports).then((output) => {
 					const exports = output.instance.exports;
@@ -93,6 +125,14 @@
 				const canvas = document.getElementById("canvas");
 				exports._start();
 				exports.main_start();
+				let appRunning = true;
+				const flushWorkspace = () => {
+					if (appRunning) exports.main_flush_workspace();
+				};
+				window.addEventListener("pagehide", flushWorkspace);
+				document.addEventListener("visibilitychange", () => {
+					if (document.visibilityState === "hidden") flushWorkspace();
+				});
 
 				const sendResize = () => {
 					exports.web_window_size_changed(canvas.width, canvas.height);
@@ -102,6 +142,7 @@
 
 				const frame = () => {
 					if (!exports.main_update()) {
+						appRunning = false;
 						exports.main_end();
 						exports._end();
 						return;
