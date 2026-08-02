@@ -46,6 +46,14 @@
 		mobileTextInput.setAttribute("spellcheck", "false");
 		mobileTextInput.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;font-size:16px;opacity:0;pointer-events:none";
 		document.body.appendChild(mobileTextInput);
+		// Emscripten's GLFW backend listens for keyboard events on window in
+		// capture phase. When the textarea owns mobile text input, prevent GLFW
+		// from also forwarding the same keystroke through GetCharPressed().
+		for (const eventName of ["keydown", "keypress", "keyup"]) {
+			window.addEventListener(eventName, (event) => {
+				if (document.activeElement === mobileTextInput) event.stopImmediatePropagation();
+			}, true);
+		}
 		const hasMobileKeyboard = navigator.maxTouchPoints > 0 && matchMedia("(pointer: coarse)").matches;
 		const fileHandles = new Map();
 		const pathHandles = new Map();
@@ -422,7 +430,7 @@
 					// activated. Advance that frame while Safari still considers this
 					// call part of the trusted touch gesture.
 					updateApp();
-					updateApp();
+					if (exports.web_wants_text_input() === 0) updateApp();
 					if (exports.web_wants_text_input() !== 0 &&
 						document.activeElement !== mobileTextInput) {
 						mobileTextInput.value = "";
