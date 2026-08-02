@@ -164,16 +164,28 @@
 				window.addEventListener("resize", sendResize, true);
 				sendResize();
 
-				const frame = () => {
+				let updateInProgress = false;
+				const updateApp = () => {
+					if (!appRunning || updateInProgress) return;
+					updateInProgress = true;
 					sendResize();
 					if (!exports.main_update()) {
 						appRunning = false;
 						exports.main_end();
 						exports._end();
-						return;
 					}
-					window.requestAnimationFrame(frame);
+					updateInProgress = false;
 				};
+				const frame = () => {
+					updateApp();
+					if (appRunning) window.requestAnimationFrame(frame);
+				};
+				// Run immediate-mode press/release frames after raylib's canvas event
+				// handlers. The release frame remains on Safari's trusted event stack,
+				// allowing ImGui actions to open a native file picker synchronously.
+				for (const eventName of ["mousedown", "mouseup", "touchstart", "touchend"]) {
+					window.addEventListener(eventName, updateApp, {passive: true});
+				}
 				window.requestAnimationFrame(frame);
 			},
 			canvas: document.getElementById("canvas"),
