@@ -137,26 +137,28 @@
 
 				let lastCssWidth = 0;
 				let lastCssHeight = 0;
-				let lastDevicePixelRatio = 0;
+				let lastRenderScale = 0;
 				const sendResize = () => {
 					const cssWidth = Math.max(1, document.documentElement.clientWidth);
 					const cssHeight = Math.max(1, document.documentElement.clientHeight);
-					const devicePixelRatio = Math.max(0.1, window.devicePixelRatio || 1);
+					// DPR 3-4 canvases consume disproportionate GPU memory on mobile.
+					// DPR 2 remains Retina-sharp while keeping WebKit's surface stable.
+					const renderScale = Math.min(2, Math.max(0.1, window.devicePixelRatio || 1));
 					if (cssWidth === lastCssWidth &&
 						cssHeight === lastCssHeight &&
-						devicePixelRatio === lastDevicePixelRatio) return;
+						renderScale === lastRenderScale) return;
 
 					lastCssWidth = cssWidth;
 					lastCssHeight = cssHeight;
-					lastDevicePixelRatio = devicePixelRatio;
+					lastRenderScale = renderScale;
 					canvas.style.width = `${cssWidth}px`;
 					canvas.style.height = `${cssHeight}px`;
 					// Raylib's web backend treats its window size as its framebuffer
 					// size. Render in device pixels and keep CSS as the logical size.
 					exports.web_window_size_changed(
-						Math.max(1, Math.round(cssWidth * devicePixelRatio)),
-						Math.max(1, Math.round(cssHeight * devicePixelRatio)),
-						devicePixelRatio,
+						Math.max(1, Math.round(cssWidth * renderScale)),
+						Math.max(1, Math.round(cssHeight * renderScale)),
+						renderScale,
 					);
 				};
 				window.addEventListener("resize", sendResize, true);
