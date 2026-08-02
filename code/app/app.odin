@@ -23,6 +23,7 @@ Init :: proc() -> bool {
 	imgui.Raylib_Setup(true)
 	io := imgui.GetIO()
 	io.ConfigFlags |= {.NavEnableKeyboard, .DockingEnable}
+	file_browser_init()
 
 	running = true
 	return true
@@ -56,6 +57,9 @@ Resize :: proc(width, height: int) {
 }
 
 Shutdown :: proc() {
+	delete(latest_path)
+	latest_path = ""
+	file_browser_shutdown()
 	if !rl.IsWindowReady() {
 		return
 	}

@@ -37,3 +37,30 @@ web_window_size_changed :: proc "c" (width, height: c.int) {
 	context = web_context
 	app.Resize(int(width), int(height))
 }
+
+@export
+web_transfer_alloc :: proc "c" (size: c.int) -> rawptr {
+	return malloc(c.size_t(size))
+}
+
+@export
+web_register_file :: proc "c" (memory: rawptr, path_size: c.int, handle, file_size: u64) {
+	context = web_context
+	path := ([^]byte)(memory)[:int(path_size)]
+	app.Web_Register_File(path, app.File_Handle(handle), file_size)
+	free(memory)
+}
+
+@export
+web_transfer_finished :: proc "c" () {
+	context = web_context
+	app.Web_Transfer_Finished()
+}
+
+@export
+web_read_completed :: proc "c" (request_id: u64, memory: rawptr, size, success: c.int) {
+	context = web_context
+	data := ([^]byte)(memory)[:int(size)]
+	app.Web_Read_Completed(request_id, data, success != 0)
+	free(memory)
+}
