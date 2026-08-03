@@ -13,6 +13,8 @@ foreign {
 
 @(private="file")
 web_context: runtime.Context
+@(private="file")
+web_text_input_requested: bool
 web_clipboard_buffer: [dynamic]byte
 
 web_clipboard_get :: proc "c" (ctx: ^imgui.Context) -> cstring {
@@ -27,12 +29,17 @@ web_clipboard_set :: proc "c" (ctx: ^imgui.Context, text: cstring) {
 	web_set_clipboard_text(rawptr(text), c.int(length))
 }
 
+web_set_ime_data :: proc "c" (ctx: ^imgui.Context, viewport: ^imgui.Viewport, data: ^imgui.PlatformeData) {
+	web_text_input_requested = data != nil && data.WantTextInput
+}
+
 web_clipboard_init :: proc() {
 	web_clipboard_buffer = make([dynamic]byte, 1)
 	web_clipboard_buffer[0] = 0
 	platform_io := imgui.GetPlatformIO()
 	platform_io.PlatformGetClipboardTextFn = web_clipboard_get
 	platform_io.PlatformSetClipboardTextFn = web_clipboard_set
+	platform_io.PlatformSetImeDataFn = web_set_ime_data
 }
 
 @export
@@ -95,7 +102,7 @@ web_read_alloc :: proc "c" (size: c.int) -> rawptr {
 @export
 web_wants_text_input :: proc "c" () -> c.int {
 	context = web_context
-	return imgui.GetIO().WantTextInput ? 1 : 0
+	return web_text_input_requested ? 1 : 0
 }
 
 @export
