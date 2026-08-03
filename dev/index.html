@@ -49,9 +49,23 @@
 		// Emscripten's GLFW backend listens for keyboard events on window in
 		// capture phase. When the textarea owns mobile text input, prevent GLFW
 		// from also forwarding the same keystroke through GetCharPressed().
+		let lastMobileKeyAction = -1;
+		let lastMobileKeyTime = 0;
 		for (const eventName of ["keydown", "keypress", "keyup"]) {
 			window.addEventListener(eventName, (event) => {
-				if (document.activeElement === mobileTextInput) event.stopImmediatePropagation();
+				if (document.activeElement !== mobileTextInput) return;
+				if (eventName === "keydown" && typeof wasmExports !== "undefined") {
+					const action = event.key === "Backspace" ? 0 :
+						event.key === "Delete" ? 1 :
+						event.key === "Enter" ? 2 : -1;
+					if (action >= 0) {
+						wasmExports.web_text_key(action);
+						lastMobileKeyAction = action;
+						lastMobileKeyTime = performance.now();
+						event.preventDefault();
+					}
+				}
+				event.stopImmediatePropagation();
 			}, true);
 		}
 		const hasMobileKeyboard = navigator.maxTouchPoints > 0 && matchMedia("(pointer: coarse)").matches;
@@ -333,22 +347,27 @@
 					exports.web_text_input(ptr);
 				};
 				mobileTextInput.addEventListener("beforeinput", (event) => {
+					let action = -1;
 					switch (event.inputType) {
 					case "deleteContentBackward":
 					case "deleteWordBackward":
-						exports.web_text_key(0);
+						action = 0;
 						break;
 					case "deleteContentForward":
 					case "deleteWordForward":
-						exports.web_text_key(1);
+						action = 1;
 						break;
 					case "insertLineBreak":
 					case "insertParagraph":
-						exports.web_text_key(2);
+						action = 2;
 						break;
 					default:
 						return;
 					}
+					if (action !== lastMobileKeyAction || performance.now() - lastMobileKeyTime > 100) {
+						exports.web_text_key(action);
+					}
+					lastMobileKeyAction = -1;
 					event.preventDefault();
 					mobileTextInput.value = "";
 				});
@@ -426,11 +445,9 @@
 					updateInProgress = false;
 				};
 				const updateTouchStart = () => {
-					// ImGui publishes WantTextInput on the frame after InputText is
-					// activated. Advance that frame while Safari still considers this
-					// call part of the trusted touch gesture.
+					// PlatformSetImeDataFn reports the current frame's text-input intent,
+					// allowing focus before Safari's trusted touch gesture returns.
 					updateApp();
-					if (exports.web_wants_text_input() === 0) updateApp();
 					if (exports.web_wants_text_input() !== 0 &&
 						document.activeElement !== mobileTextInput) {
 						mobileTextInput.value = "";
