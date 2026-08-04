@@ -139,10 +139,19 @@ package_linux() {
 	ARCH=$appimage_arch APPIMAGE_EXTRACT_AND_RUN=1 "$tool" "$appdir" "$BINARY"
 }
 
+package_windows() {
+	local out package
+	build_one "$ARCH"
+	out="$ROOT/build/$MODE/windows-$ARCH"
+	package="$out/TinyEDA-windows-$ARCH.exe"
+	cp "$BINARY" "$package"
+	BINARY=$package
+}
+
 case "$ACTION:$PLATFORM" in
 package:macos) package_macos ;;
 package:linux) package_linux ;;
-package:windows) build_one "$ARCH" ;;
+package:windows) package_windows ;;
 *) [ "$ARCH" != universal ] || error "universal requires the package action"; build_one "$ARCH" ;;
 esac
 

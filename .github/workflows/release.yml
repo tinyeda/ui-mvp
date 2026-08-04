@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   macos:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,6 +20,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           release: dev-2026-07a
       - run: ./build.sh release macos universal package
+      - run: lipo build/release/macos-universal/TinyEDA.app/Contents/MacOS/TinyEDA -verify_arch arm64 x86_64
       - name: Smoke test
         run: |
           open -n build/release/macos-universal/TinyEDA.app
@@ -33,8 +34,35 @@ jobs:
           name: macos
           path: build/release/macos-universal/TinyEDA-macos-universal.zip
 
+  macos-intel-smoke:
+    needs: macos
+    runs-on: macos-26-intel
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos
+          path: dist
+      - run: ditto -x -k dist/TinyEDA-macos-universal.zip dist
+      - name: Smoke test x64 slice
+        run: |
+          open -n dist/TinyEDA.app
+          for _ in {1..20}; do
+            pgrep -f '/TinyEDA.app/Contents/MacOS/TinyEDA' && exit 0
+            sleep 0.25
+          done
+          exit 1
+
   linux:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+            appimage_arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            appimage_arch: aarch64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,18 +75,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev xvfb
       - name: Download appimagetool
         run: |
-          curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o appimagetool
+          curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${{ matrix.appimage_arch }}.AppImage -o appimagetool
           chmod +x appimagetool
-      - run: APPIMAGETOOL="$PWD/appimagetool" ./build.sh release linux x64 package
+      - run: APPIMAGETOOL="$PWD/appimagetool" ./build.sh release linux ${{ matrix.arch }} package
       - name: Smoke test
         run: |
           set +e
-          xvfb-run timeout 5s build/release/linux-x64/TinyEDA-linux-x86_64.AppImage --appimage-extract-and-run
+          xvfb-run timeout 5s build/release/linux-${{ matrix.arch }}/TinyEDA-linux-${{ matrix.appimage_arch }}.AppImage --appimage-extract-and-run
           test $? -eq 124
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
-          path: build/release/linux-x64/TinyEDA-linux-x86_64.AppImage
+          name: linux-${{ matrix.arch }}
+          path: build/release/linux-${{ matrix.arch }}/TinyEDA-linux-${{ matrix.appimage_arch }}.AppImage
 
   windows:
     runs-on: windows-2025
@@ -73,30 +101,31 @@ jobs:
       - name: Build
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set "VSINSTALL=%%i"
+          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
           bash build.sh release windows x64 package
       - name: Smoke test
         shell: pwsh
         run: |
-          $process = Start-Process build/release/windows-x64/TinyEDA.exe -PassThru
+          $process = Start-Process build/release/windows-x64/TinyEDA-windows-x64.exe -PassThru
           Start-Sleep -Seconds 3
           if ($process.HasExited) { throw "TinyEDA exited during startup" }
           Stop-Process -Id $process.Id
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
-          path: build/release/windows-x64/TinyEDA.exe
+          name: windows-x64
+          path: build/release/windows-x64/TinyEDA-windows-x64.exe
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [macos, linux, windows]
-    runs-on: ubuntu-latest
+    needs: [macos, macos-intel-smoke, linux, windows]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - run: cd dist && sha256sum * > SHA256SUMS
+      - run: cd dist && sha256sum -- * > SHA256SUMS
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
