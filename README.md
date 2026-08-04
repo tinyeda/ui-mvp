@@ -47,12 +47,29 @@ Install the Odin compiler [following instructions from the Odin website](https:/
 odin run code
 ```
 
-### Run on the web
+### Native builds
 
-With the Odin compiler installed, install [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) and run the web build script:
+`build.sh` compiles with Odin and links the target-specific static ImGui library from
+`third-party/imgui/lib`:
 
 ```sh
-./build_web.sh
+./build.sh                                  # debug build for this machine
+./build.sh release macos arm64 package
+./build.sh release macos universal package
+./build.sh release linux x64 package
+./build.sh release windows x64 package
+```
+
+Arguments are `mode`, `platform`, `architecture`, and `action`. Release tags matching `v*`
+run the native GitHub Actions workflow and attach the macOS ZIP, Linux AppImage, Windows EXE,
+and checksums to the GitHub release.
+
+### Run on the web
+
+With the Odin compiler installed, install [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) and run the web build:
+
+```sh
+./build.sh release web
 python3 -m http.server --directory build/web --bind localhost:8000
 ```
 

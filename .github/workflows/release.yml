@@ -1,0 +1,104 @@
+name: Build native releases
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: dev-2026-07a
+      - run: ./build.sh release macos universal package
+      - name: Smoke test
+        run: |
+          open -n build/release/macos-universal/TinyEDA.app
+          for _ in {1..20}; do
+            pgrep -f '/TinyEDA.app/Contents/MacOS/TinyEDA' && exit 0
+            sleep 0.25
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: build/release/macos-universal/TinyEDA-macos-universal.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: dev-2026-07a
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev xvfb
+      - name: Download appimagetool
+        run: |
+          curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o appimagetool
+          chmod +x appimagetool
+      - run: APPIMAGETOOL="$PWD/appimagetool" ./build.sh release linux x64 package
+      - name: Smoke test
+        run: |
+          set +e
+          xvfb-run timeout 5s build/release/linux-x64/TinyEDA-linux-x86_64.AppImage --appimage-extract-and-run
+          test $? -eq 124
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: build/release/linux-x64/TinyEDA-linux-x86_64.AppImage
+
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: dev-2026-07a
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          bash build.sh release windows x64 package
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $process = Start-Process build/release/windows-x64/TinyEDA.exe -PassThru
+          Start-Sleep -Seconds 3
+          if ($process.HasExited) { throw "TinyEDA exited during startup" }
+          Stop-Process -Id $process.Id
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: build/release/windows-x64/TinyEDA.exe
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [macos, linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: cd dist && sha256sum * > SHA256SUMS
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber

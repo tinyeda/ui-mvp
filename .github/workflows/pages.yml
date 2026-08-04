@@ -40,7 +40,7 @@ jobs:
           version: 6.0.5
 
       - name: Build web application
-        run: ./build_web.sh
+        run: ./build.sh release web
 
       - name: Deploy production
         if: github.event_name != 'pull_request' && github.ref_name == 'main'

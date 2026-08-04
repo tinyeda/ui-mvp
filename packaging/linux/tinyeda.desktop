@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=TinyEDA
+Comment=Integrated design environment for chip design
+Exec=TinyEDA
+Icon=tinyeda
+Categories=Development;Engineering;
+Terminal=false
