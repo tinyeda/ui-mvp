@@ -18,7 +18,7 @@ jobs:
       - uses: laytan/setup-odin@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release: dev-2026-07a
+          release: nightly
       - run: ./build.sh release macos universal package
       - run: lipo build/release/macos-universal/TinyEDA.app/Contents/MacOS/TinyEDA -verify_arch arm64 x86_64
       - name: Smoke test
@@ -70,7 +70,7 @@ jobs:
       - uses: laytan/setup-odin@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release: dev-2026-07a
+          release: nightly
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev xvfb
       - name: Download appimagetool
@@ -97,7 +97,7 @@ jobs:
       - uses: laytan/setup-odin@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release: dev-2026-07a
+          release: nightly
       - name: Build
         shell: cmd
         run: |
