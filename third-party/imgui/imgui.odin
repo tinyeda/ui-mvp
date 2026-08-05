@@ -1,6 +1,6 @@
 package imgui
 
-IMGUI_WASM_LIB :: #config(IMGUI_WASM_LIB, "lib/libtinyeda_imgui_wasm32.a")
+IMGUI_WASM_LIB :: #config(IMGUI_WASM_LIB, "lib/librlImGui-wasm32-unknown-emscripten.a")
 
 when ODIN_OS == .Linux {
 	@(require) foreign import stdcpp "system:stdc++"
@@ -11,26 +11,25 @@ when ODIN_OS == .Linux {
 when ODIN_OS == .Windows {
 	when ODIN_ARCH == .amd64 {
 		@export
-		foreign import imguilib "lib/tinyeda_imgui_windows_x64.lib"
+		foreign import imguilib "lib/rlImGui-x86_64-pc-windows-msvc.lib"
 	} else {
-		@export
-		foreign import imguilib "lib/tinyeda_imgui_windows_arm64.lib"
+		#panic("No TinyEDA ImGui library is available for this target")
 	}
 } else when ODIN_OS == .Linux {
 	when ODIN_ARCH == .amd64 {
 		@export
-		foreign import imguilib "lib/libtinyeda_imgui_linux_x64.a"
+		foreign import imguilib "lib/librlImGui-x86_64-unknown-linux-gnu.a"
 	} else {
 		@export
-		foreign import imguilib "lib/libtinyeda_imgui_linux_arm64.a"
+		foreign import imguilib "lib/librlImGui-aarch64-unknown-linux-gnu.a"
 	}
 } else when ODIN_OS == .Darwin {
 	when ODIN_ARCH == .amd64 {
 		@export
-		foreign import imguilib "lib/libtinyeda_imgui_macos_x64.a"
+		foreign import imguilib "lib/librlImGui-x86_64-apple-darwin.a"
 	} else {
 		@export
-		foreign import imguilib "lib/libtinyeda_imgui_macos_arm64.a"
+		foreign import imguilib "lib/librlImGui-aarch64-apple-darwin.a"
 	}
 } else when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 	@export
