@@ -9,8 +9,35 @@ permissions:
   contents: write
 
 jobs:
-  macos:
-    runs-on: macos-26
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos
+            os: macos-26
+            platform: macos
+            arch: universal
+            artifact: build/release/macos-universal/TinyEDA-macos-universal.zip
+          - name: linux-x64
+            os: ubuntu-24.04
+            platform: linux
+            arch: x64
+            appimage_arch: x86_64
+            artifact: build/release/linux-x64/TinyEDA-linux-x86_64.AppImage
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+            appimage_arch: aarch64
+            artifact: build/release/linux-arm64/TinyEDA-linux-aarch64.AppImage
+          - name: windows-x64
+            os: windows-2025
+            platform: windows
+            arch: x64
+            artifact: build/release/windows-x64/TinyEDA-windows-x64.exe
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,9 +46,46 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           release: nightly
-      - run: ./build.sh release macos universal package
-      - run: lipo build/release/macos-universal/TinyEDA.app/Contents/MacOS/TinyEDA -verify_arch arm64 x86_64
-      - name: Smoke test
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev xvfb
+      - name: Download appimagetool
+        if: runner.os == 'Linux'
+        run: |
+          curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${{ matrix.appimage_arch }}.AppImage -o appimagetool
+          chmod +x appimagetool
+      - name: Build
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          APPIMAGETOOL: ${{ matrix.appimage_arch && format('{0}/appimagetool', github.workspace) || '' }}
+        run: ./build.sh release ${{ matrix.platform }} ${{ matrix.arch }} package
+      - name: Build (MSVC)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set "VSINSTALL=%%i"
+          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
+          bash build.sh release windows x64 package
+      - name: Verify universal binary
+        if: runner.os == 'macOS'
+        run: lipo build/release/macos-universal/TinyEDA.app/Contents/MacOS/TinyEDA -verify_arch arm64 x86_64
+      - name: Install Mesa (software OpenGL)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $mesaRoot = Join-Path $env:RUNNER_TEMP 'mesa'
+          $mesaArchive = Join-Path $env:RUNNER_TEMP 'mesa.7z'
+          New-Item -ItemType Directory -Force $mesaRoot | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/pal1000/mesa-dist-win/releases/download/26.1.6/mesa3d-26.1.6-release-msvc.7z' -OutFile $mesaArchive
+          & 'C:\Program Files\7-Zip\7z.exe' x $mesaArchive "-o$mesaRoot" -y | Out-Null
+          $dest = 'build/release/windows-x64'
+          foreach ($dll in @('opengl32.dll', 'libgallium_wgl.dll', 'dxil.dll')) {
+            $src = Join-Path $mesaRoot "x64/$dll"
+            if (Test-Path $src) { Copy-Item $src $dest }
+          }
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
         run: |
           open -n build/release/macos-universal/TinyEDA.app
           for _ in {1..20}; do
@@ -29,13 +93,29 @@ jobs:
             sleep 0.25
           done
           exit 1
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set +e
+          xvfb-run timeout 5s build/release/linux-${{ matrix.arch }}/TinyEDA-linux-${{ matrix.appimage_arch }}.AppImage --appimage-extract-and-run
+          test $? -eq 124
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          $process = Start-Process build/release/windows-x64/TinyEDA-windows-x64.exe -PassThru
+          Start-Sleep -Seconds 3
+          if ($process.HasExited) { throw "TinyEDA exited during startup" }
+          Stop-Process -Id $process.Id
       - uses: actions/upload-artifact@v4
         with:
-          name: macos
-          path: build/release/macos-universal/TinyEDA-macos-universal.zip
+          name: ${{ matrix.name }}
+          path: ${{ matrix.artifact }}
 
   macos-intel-smoke:
-    needs: macos
+    needs: build
     runs-on: macos-26-intel
     steps:
       - uses: actions/download-artifact@v4
@@ -52,88 +132,9 @@ jobs:
           done
           exit 1
 
-  linux:
-    strategy:
-      matrix:
-        include:
-          - runner: ubuntu-24.04
-            arch: x64
-            appimage_arch: x86_64
-          - runner: ubuntu-24.04-arm
-            arch: arm64
-            appimage_arch: aarch64
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-      - uses: laytan/setup-odin@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release: nightly
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev xvfb
-      - name: Download appimagetool
-        run: |
-          curl -L https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${{ matrix.appimage_arch }}.AppImage -o appimagetool
-          chmod +x appimagetool
-      - run: APPIMAGETOOL="$PWD/appimagetool" ./build.sh release linux ${{ matrix.arch }} package
-      - name: Smoke test
-        run: |
-          set +e
-          xvfb-run timeout 5s build/release/linux-${{ matrix.arch }}/TinyEDA-linux-${{ matrix.appimage_arch }}.AppImage --appimage-extract-and-run
-          test $? -eq 124
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{ matrix.arch }}
-          path: build/release/linux-${{ matrix.arch }}/TinyEDA-linux-${{ matrix.appimage_arch }}.AppImage
-
-  windows:
-    runs-on: windows-2025
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-      - uses: laytan/setup-odin@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          release: nightly
-      - name: Build
-        shell: cmd
-        run: |
-          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set "VSINSTALL=%%i"
-          call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
-          bash build.sh release windows x64 package
-      - name: Install Mesa (software OpenGL)
-        shell: pwsh
-        run: |
-          $mesaRoot = Join-Path $env:RUNNER_TEMP 'mesa'
-          $mesaArchive = Join-Path $env:RUNNER_TEMP 'mesa.7z'
-          New-Item -ItemType Directory -Force $mesaRoot | Out-Null
-          Invoke-WebRequest -Uri 'https://github.com/pal1000/mesa-dist-win/releases/download/26.1.6/mesa3d-26.1.6-release-msvc.7z' -OutFile $mesaArchive
-          & 'C:\Program Files\7-Zip\7z.exe' x $mesaArchive "-o$mesaRoot" -y | Out-Null
-          $dest = 'build/release/windows-x64'
-          foreach ($dll in @('opengl32.dll', 'libgallium_wgl.dll', 'dxil.dll')) {
-            $src = Join-Path $mesaRoot "x64/$dll"
-            if (Test-Path $src) { Copy-Item $src $dest }
-          }
-      - name: Smoke test
-        shell: pwsh
-        env:
-          GALLIUM_DRIVER: llvmpipe
-        run: |
-          $process = Start-Process build/release/windows-x64/TinyEDA-windows-x64.exe -PassThru
-          Start-Sleep -Seconds 3
-          if ($process.HasExited) { throw "TinyEDA exited during startup" }
-          Stop-Process -Id $process.Id
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-x64
-          path: build/release/windows-x64/TinyEDA-windows-x64.exe
-
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [macos, macos-intel-smoke, linux, windows]
+    needs: [build, macos-intel-smoke]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4
