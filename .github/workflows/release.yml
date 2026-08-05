@@ -147,11 +147,11 @@ jobs:
         run: |
           prerelease=false
           [[ "${GITHUB_REF_NAME,,}" == *pre-release* ]] && prerelease=true
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            $prerelease && gh release edit "$GITHUB_REF_NAME" --prerelease
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            $prerelease && gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease
           elif $prerelease; then
-            gh release create "$GITHUB_REF_NAME" --generate-notes --prerelease
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --prerelease
           else
-            gh release create "$GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes
           fi
-          gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" dist/* --clobber
