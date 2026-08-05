@@ -3,7 +3,7 @@ name: Build native releases
 on:
   workflow_dispatch:
   push:
-    tags: ["v*"]
+    tags: ["v*", "Pre-release-v*"]
 
 permissions:
   contents: write
