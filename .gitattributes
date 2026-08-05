@@ -1,8 +1,8 @@
-third-party/imgui/lib/libtinyeda_imgui_macos_arm64.a filter=lfs diff=lfs merge=lfs -text
-third-party/imgui/lib/libtinyeda_imgui_macos_x64.a filter=lfs diff=lfs merge=lfs -text
-third-party/imgui/lib/libtinyeda_imgui_linux_x64.a filter=lfs diff=lfs merge=lfs -text
-third-party/imgui/lib/libtinyeda_imgui_linux_arm64.a filter=lfs diff=lfs merge=lfs -text
-third-party/imgui/lib/tinyeda_imgui_windows_x64.lib filter=lfs diff=lfs merge=lfs -text
-third-party/imgui/lib/libtinyeda_imgui_wasm32.a filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/librlImGui-aarch64-apple-darwin.a filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/librlImGui-x86_64-apple-darwin.a filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/librlImGui-aarch64-unknown-linux-gnu.a filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/librlImGui-x86_64-unknown-linux-gnu.a filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/rlImGui-x86_64-pc-windows-msvc.lib filter=lfs diff=lfs merge=lfs -text
+third-party/imgui/lib/librlImGui-wasm32-unknown-emscripten.a filter=lfs diff=lfs merge=lfs -text
 third-party/openroad/bin/openroad_macos_arm64.bin filter=lfs diff=lfs merge=lfs -text
 third-party/openroad/lib/libopenroad_macos_arm64.a filter=lfs diff=lfs merge=lfs -text

@@ -22,7 +22,7 @@ build_web() {
 	cp "$odin_root/core/sys/wasm/js/odin.js" "$out/odin.js"
 	em++ -o "$out/index.html" "$object" \
 		"$odin_root/vendor/raylib/wasm/libraylib.web.a" \
-		"$ROOT/third-party/imgui/lib/libtinyeda_imgui_wasm32.a" \
+		"$ROOT/third-party/imgui/lib/librlImGui-wasm32-unknown-emscripten.a" \
 		-sUSE_GLFW=3 -sWASM_BIGINT -sALLOW_MEMORY_GROWTH=1 -sASSERTIONS=1 \
 		-sWARN_ON_UNDEFINED_SYMBOLS=0 -sEXPORTED_RUNTIME_METHODS='["HEAPF32"]' \
 		--shell-file "$ROOT/code/web/index_template.html"
@@ -76,11 +76,11 @@ ODIN_FLAGS=(-debug)
 build_one() {
 	local arch=$1 target library suffix='' out
 	case "$PLATFORM:$arch" in
-	macos:x64) target=darwin_amd64; library=libtinyeda_imgui_macos_x64.a ;;
-	macos:arm64) target=darwin_arm64; library=libtinyeda_imgui_macos_arm64.a ;;
-	linux:x64) target=linux_amd64; library=libtinyeda_imgui_linux_x64.a ;;
-	linux:arm64) target=linux_arm64; library=libtinyeda_imgui_linux_arm64.a ;;
-	windows:x64) target=windows_amd64; library=tinyeda_imgui_windows_x64.lib; suffix=.exe ;;
+	macos:x64) target=darwin_amd64; library=librlImGui-x86_64-apple-darwin.a ;;
+	macos:arm64) target=darwin_arm64; library=librlImGui-aarch64-apple-darwin.a ;;
+	linux:x64) target=linux_amd64; library=librlImGui-x86_64-unknown-linux-gnu.a ;;
+	linux:arm64) target=linux_arm64; library=librlImGui-aarch64-unknown-linux-gnu.a ;;
+	windows:x64) target=windows_amd64; library=rlImGui-x86_64-pc-windows-msvc.lib; suffix=.exe ;;
 	*) error "unsupported target: $PLATFORM $arch" ;;
 	esac
 	[ -f "$ROOT/third-party/imgui/lib/$library" ] || error "missing static library: third-party/imgui/lib/$library"
