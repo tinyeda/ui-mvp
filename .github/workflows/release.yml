@@ -104,8 +104,23 @@ jobs:
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set "VSINSTALL=%%i"
           call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat"
           bash build.sh release windows x64 package
+      - name: Install Mesa (software OpenGL)
+        shell: pwsh
+        run: |
+          $mesaRoot = Join-Path $env:RUNNER_TEMP 'mesa'
+          $mesaArchive = Join-Path $env:RUNNER_TEMP 'mesa.7z'
+          New-Item -ItemType Directory -Force $mesaRoot | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/pal1000/mesa-dist-win/releases/download/26.1.6/mesa3d-26.1.6-release-msvc.7z' -OutFile $mesaArchive
+          & 'C:\Program Files\7-Zip\7z.exe' x $mesaArchive "-o$mesaRoot" -y | Out-Null
+          $dest = 'build/release/windows-x64'
+          foreach ($dll in @('opengl32.dll', 'libgallium_wgl.dll', 'dxil.dll')) {
+            $src = Join-Path $mesaRoot "x64/$dll"
+            if (Test-Path $src) { Copy-Item $src $dest }
+          }
       - name: Smoke test
         shell: pwsh
+        env:
+          GALLIUM_DRIVER: llvmpipe
         run: |
           $process = Start-Process build/release/windows-x64/TinyEDA-windows-x64.exe -PassThru
           Start-Sleep -Seconds 3
