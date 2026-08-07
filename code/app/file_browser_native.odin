@@ -13,10 +13,10 @@ fb_native_list :: proc() {
 	infos, err := os.read_all_directory_by_path(browser.path, context.allocator)
 	if err != nil { return }
 	defer os.file_info_slice_delete(infos, context.allocator)
-	for pass in 0..<2 { for info in infos {
+	for pass in 0 ..< 2 { for info in infos {
 		is_dir := info.type == .Directory
 		if (pass == 0) == is_dir {
-			append(&browser.entries, Browser_Entry{strings.clone(info.name), is_dir, u64(max(info.size, 0))})
+			append(&browser.entries, BrowserEntry{strings.clone(info.name), is_dir, u64(max(info.size, 0))})
 		}
 	} }
 }

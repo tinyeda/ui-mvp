@@ -24,7 +24,7 @@ This demo primarily demonstrates the ux of such an interface not internals, for 
 
 The application uses Odin's `vendor:raylib` package as its platform and renderer layer and [rlImGui](https://github.com/raylib-extras/rlImGui) to connect raylib to Dear ImGui. UI code directly uses the generated ImGui bindings. The repository ships the ImGui/rlImGui static libraries needed by its supported targets, so normal application builds do not compile C++ or require CMake.
 
-The shared application lifecycle and UI live in `code/app`. Desktop and web have small entry points that provide their different main-loop and runtime setup, while calling the same `app.Init`, `app.Frame`, and `app.Shutdown` procedures.
+The shared application lifecycle and UI live in `code/app`. Desktop and web have small entry points that provide their different main-loop and runtime setup, while calling the same `app.init`, `app.frame`, and `app.shutdown` procedures.
 
 Panel inventory and Dear ImGui's docking layout are restored across runs. Native builds save `workspace.json` and `imgui.ini` under the operating system's per-user configuration directory in a `TinyEDA` folder. Web builds store the equivalent data in the site's browser `localStorage`. Packaged application resources remain read-only; user layout changes are always written to per-user storage.
 

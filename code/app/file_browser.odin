@@ -4,48 +4,48 @@ import "core:fmt"
 import "core:strings"
 import "../../third-party/imgui"
 
-File_Browser_Mode :: enum { Explorer, Pick_File, Pick_Folder, Save_File }
+FileBrowserMode :: enum { EXPLORER, PICK_FILE, PICK_FOLDER, SAVE_FILE }
 
-File_Handle :: distinct u64
+FileHandle :: distinct u64
 FILE_BROWSER_MAX_READ_SIZE :: 16 * 1024 * 1024
 
-Browser_Entry :: struct { name: string, is_dir: bool, size: u64 }
-Virtual_File :: struct { path: string, handle: File_Handle, size: u64 }
-File_Read_Result :: struct {
+BrowserEntry :: struct { name: string, is_dir: bool, size: u64 }
+VirtualFile :: struct { path: string, handle: FileHandle, size: u64 }
+FileReadResult :: struct {
 	request_id: u64,
 	data: []byte,
 	ok: bool,
 }
-File_Write_Result :: struct {
+FileWriteResult :: struct {
 	request_id: u64,
 	ok: bool,
 }
-File_Browser_State :: struct {
+FileBrowserState :: struct {
 	path: string,
-	entries: [dynamic]Browser_Entry,
-	files: [dynamic]Virtual_File,
+	entries: [dynamic]BrowserEntry,
+	files: [dynamic]VirtualFile,
 	selected: int,
-	mode: File_Browser_Mode,
+	mode: FileBrowserMode,
 	open_requested: bool,
 	result: string,
 	result_ready: bool,
 	filename: [256]byte,
 	next_request_id: u64,
 	read_pending: bool,
-	read_result: File_Read_Result,
+	read_result: FileReadResult,
 	read_result_ready: bool,
 	write_pending: bool,
-	write_result: File_Write_Result,
+	write_result: FileWriteResult,
 	write_result_ready: bool,
 }
 
-browser: File_Browser_State
+browser: FileBrowserState
 
 when ODIN_OS == .JS {
 	foreign import "odin_env"
 	foreign {
 		web_pick_files :: proc "contextless" (folder: i32) ---
-		web_read_file :: proc "contextless" (handle: File_Handle, offset: u64, length: u32, request_id: u64) ---
+		web_read_file :: proc "contextless" (handle: FileHandle, offset: u64, length: u32, request_id: u64) ---
 		web_write_file :: proc "contextless" (path: rawptr, path_length: i32, data: rawptr, data_length: i32, request_id: u64) ---
 		web_export_project :: proc "contextless" () ---
 	}
@@ -91,7 +91,7 @@ file_browser_refresh :: proc() {
 			is_dir := len(parts) > 1
 			found := false
 			for e in browser.entries { if e.name == parts[0] { found = true; break } }
-			if !found { append(&browser.entries, Browser_Entry{strings.clone(parts[0]), is_dir, is_dir ? 0 : f.size}) }
+			if !found { append(&browser.entries, BrowserEntry{strings.clone(parts[0]), is_dir, is_dir ? 0 : f.size}) }
 		}
 	} else {
 		fb_native_list()
@@ -104,17 +104,17 @@ fb_join :: proc(base, name: string) -> string {
 }
 
 fb_web_parent :: proc(path: string) -> string {
-	for i := len(path)-1; i >= len("/workspace"); i -= 1 { if path[i] == '/' { return path[:i] } }
+	for i := len(path) - 1; i >= len("/workspace"); i -= 1 { if path[i] == '/' { return path[:i] } }
 	return "/workspace"
 }
 
 fb_set_path :: proc(path: string) { delete(browser.path); browser.path = strings.clone(path); file_browser_refresh() }
 
-File_Browser_Open :: proc(mode: File_Browser_Mode) {
+file_browser_open :: proc(mode: FileBrowserMode) {
 	browser.mode = mode; browser.open_requested = true; browser.result_ready = false; browser.selected = -1
-	if mode == .Save_File { browser.filename = {}; copy(browser.filename[:], "untitled.eda") }
+	if mode == .SAVE_FILE { browser.filename = {}; copy(browser.filename[:], "untitled.eda") }
 }
-File_Browser_Take_Result :: proc() -> (string, bool) {
+file_browser_take_result :: proc() -> (string, bool) {
 	if !browser.result_ready { return "", false }
 	browser.result_ready = false
 	result := browser.result
@@ -122,7 +122,7 @@ File_Browser_Take_Result :: proc() -> (string, bool) {
 	return result, true
 }
 
-File_Browser_File_Size :: proc(path: string) -> (u64, bool) {
+file_browser_file_size :: proc(path: string) -> (u64, bool) {
 	when ODIN_OS == .JS {
 		rel := strings.trim_prefix(strings.trim_prefix(path, "/workspace"), "/")
 		for file in browser.files { if file.path == rel { return file.size, true } }
@@ -132,7 +132,7 @@ File_Browser_File_Size :: proc(path: string) -> (u64, bool) {
 	}
 }
 
-File_Browser_Request_Read :: proc(path: string, offset: u64, length: u32) -> (u64, bool) {
+file_browser_request_read :: proc(path: string, offset: u64, length: u32) -> (u64, bool) {
 	if length == 0 || length > FILE_BROWSER_MAX_READ_SIZE || browser.read_pending || browser.read_result_ready {
 		return 0, false
 	}
@@ -162,7 +162,7 @@ File_Browser_Request_Read :: proc(path: string, offset: u64, length: u32) -> (u6
 }
 
 // The caller owns result.data and must delete it.
-File_Browser_Take_Read_Result :: proc() -> (File_Read_Result, bool) {
+file_browser_take_read_result :: proc() -> (FileReadResult, bool) {
 	if !browser.read_result_ready { return {}, false }
 	result := browser.read_result
 	browser.read_result = {}
@@ -170,7 +170,7 @@ File_Browser_Take_Read_Result :: proc() -> (File_Read_Result, bool) {
 	return result, true
 }
 
-File_Browser_Request_Write :: proc(path: string, data: []byte) -> (u64, bool) {
+file_browser_request_write :: proc(path: string, data: []byte) -> (u64, bool) {
 	if len(path) == 0 || len(data) > FILE_BROWSER_MAX_READ_SIZE || browser.write_pending || browser.write_result_ready {
 		return 0, false
 	}
@@ -178,7 +178,7 @@ File_Browser_Request_Write :: proc(path: string, data: []byte) -> (u64, bool) {
 	if browser.next_request_id == 0 { browser.next_request_id = 1 }
 	request_id := browser.next_request_id
 	browser.write_pending = true
-	browser.write_result = File_Write_Result{request_id = request_id}
+	browser.write_result = FileWriteResult{request_id = request_id}
 	when ODIN_OS == .JS {
 		web_write_file(raw_data(path), i32(len(path)), raw_data(data), i32(len(data)), request_id)
 	} else {
@@ -187,7 +187,7 @@ File_Browser_Request_Write :: proc(path: string, data: []byte) -> (u64, bool) {
 	return request_id, true
 }
 
-File_Browser_Take_Write_Result :: proc() -> (File_Write_Result, bool) {
+file_browser_take_write_result :: proc() -> (FileWriteResult, bool) {
 	if !browser.write_result_ready { return {}, false }
 	result := browser.write_result
 	browser.write_result = {}
@@ -208,11 +208,11 @@ fb_complete_read_owned :: proc(request_id: u64, data: []byte, ok: bool) {
 		return
 	}
 	browser.read_pending = false
-	browser.read_result = File_Read_Result{request_id, data, ok}
+	browser.read_result = FileReadResult{request_id, data, ok}
 	browser.read_result_ready = true
 }
 
-Web_Register_File :: proc(path: []byte, handle: File_Handle, size: u64) {
+web_register_file :: proc(path: []byte, handle: FileHandle, size: u64) {
 	when ODIN_OS == .JS {
 		file_path := string(path)
 		for &file in browser.files {
@@ -222,25 +222,25 @@ Web_Register_File :: proc(path: []byte, handle: File_Handle, size: u64) {
 				return
 			}
 		}
-		append(&browser.files, Virtual_File{strings.clone(file_path), handle, size})
+		append(&browser.files, VirtualFile{strings.clone(file_path), handle, size})
 	}
 }
 
-Web_Read_Completed :: proc(request_id: u64, data: []byte, ok: bool) {
+web_read_completed :: proc(request_id: u64, data: []byte, ok: bool) {
 	when ODIN_OS == .JS {
 		fb_complete_read_owned(request_id, data, ok)
 	}
 }
-Web_Write_Completed :: proc(request_id: u64, path: []byte, handle: File_Handle, size: u64, ok: bool) {
+web_write_completed :: proc(request_id: u64, path: []byte, handle: FileHandle, size: u64, ok: bool) {
 	when ODIN_OS == .JS {
 		if ok {
-			Web_Register_File(path, handle, size)
+			web_register_file(path, handle, size)
 			file_browser_refresh()
 		}
 		fb_complete_write(request_id, ok)
 	}
 }
-Web_Transfer_Finished :: proc() { when ODIN_OS == .JS { file_browser_refresh() } }
+web_transfer_finished :: proc() { when ODIN_OS == .JS { file_browser_refresh() } }
 
 fb_accept :: proc(path: string) { delete(browser.result); browser.result = strings.clone(path); browser.result_ready = true }
 
@@ -274,7 +274,7 @@ fb_contents :: proc(modal: bool) {
 					p := fb_join(browser.path, e.name)
 					if e.is_dir {
 						fb_set_path(p)
-					} else if modal && browser.mode == .Pick_File {
+					} else if modal && browser.mode == .PICK_FILE {
 						fb_accept(p); imgui.CloseCurrentPopup()
 					} else if !modal {
 						text_editor_open_path(p)
@@ -287,22 +287,22 @@ fb_contents :: proc(modal: bool) {
 		imgui.EndTable()
 	}
 	if modal {
-		if browser.mode == .Save_File { _ = imgui.InputText("Filename", cstring(&browser.filename[0]), len(browser.filename)) }
+		if browser.mode == .SAVE_FILE { _ = imgui.InputText("Filename", cstring(&browser.filename[0]), len(browser.filename)) }
 		filename_length := strings.index_byte(string(browser.filename[:]), 0)
 		if filename_length < 0 { filename_length = len(browser.filename) }
 		selected_file := browser.selected >= 0 && !browser.entries[browser.selected].is_dir
 		can_accept := false
 		switch browser.mode {
-		case .Pick_File:   can_accept = selected_file
-		case .Pick_Folder: can_accept = true
-		case .Save_File:   can_accept = filename_length > 0
-		case .Explorer:
+		case .PICK_FILE:   can_accept = selected_file
+		case .PICK_FOLDER: can_accept = true
+		case .SAVE_FILE:   can_accept = filename_length > 0
+		case .EXPLORER:
 		}
 		imgui.BeginDisabled(!can_accept)
-		if imgui.Button(browser.mode == .Save_File ? "Save" : "Select") {
+		if imgui.Button(browser.mode == .SAVE_FILE ? "Save" : "Select") {
 			path := browser.path
-			if browser.mode == .Save_File { path = fb_join(path, string(browser.filename[:filename_length])) }
-			else if browser.mode == .Pick_File { path = fb_join(path, browser.entries[browser.selected].name) }
+			if browser.mode == .SAVE_FILE { path = fb_join(path, string(browser.filename[:filename_length])) }
+			else if browser.mode == .PICK_FILE { path = fb_join(path, browser.entries[browser.selected].name) }
 			else if browser.selected >= 0 && browser.entries[browser.selected].is_dir { path = fb_join(path, browser.entries[browser.selected].name) }
 			fb_accept(path); imgui.CloseCurrentPopup()
 		}
@@ -311,8 +311,8 @@ fb_contents :: proc(modal: bool) {
 	}
 }
 
-File_Browser_Draw_Explorer_Contents :: proc() { fb_contents(false) }
-File_Browser_Draw_Modals :: proc() {
+file_browser_draw_explorer_contents :: proc() { fb_contents(false) }
+file_browser_draw_modals :: proc() {
 	if browser.open_requested { imgui.OpenPopup("File Browser"); browser.open_requested = false }
 	if imgui.BeginPopupModal("File Browser", nil, {.AlwaysAutoResize}) { fb_contents(true); imgui.EndPopup() }
 }

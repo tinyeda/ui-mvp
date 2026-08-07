@@ -5,11 +5,11 @@ import "core:fmt"
 import "core:log"
 import "core:strings"
 
-Emscripten_Logger_Options :: log.Options{.Level, .Short_File_Path, .Line}
+EMSCRIPTEN_LOGGER_OPTIONS :: log.Options{.Level, .Short_File_Path, .Line}
 
 create_emscripten_logger :: proc(
 	lowest := log.Level.Debug,
-	options := Emscripten_Logger_Options,
+	options := EMSCRIPTEN_LOGGER_OPTIONS,
 ) -> log.Logger {
 	return log.Logger{
 		data = nil,

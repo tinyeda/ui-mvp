@@ -3,12 +3,12 @@ package main
 import "./app"
 
 main :: proc() {
-	if !app.Init() {
+	if !app.init() {
 		return
 	}
-	defer app.Shutdown()
+	defer app.shutdown()
 
-	for app.Running() {
-		app.Frame()
+	for app.is_running() {
+		app.frame()
 	}
 }

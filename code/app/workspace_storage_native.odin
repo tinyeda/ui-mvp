@@ -5,7 +5,7 @@ import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 
-workspace_storage_path :: proc(kind: Workspace_Storage_Kind, allocator := context.allocator) -> (string, bool) {
+workspace_storage_path :: proc(kind: WorkspaceStorageKind, allocator := context.allocator) -> (string, bool) {
 	base, base_err := os.user_config_dir(allocator)
 	if base_err != nil { return "", false }
 	directory, directory_err := filepath.join({base, "TinyEDA"}, allocator)
@@ -15,7 +15,7 @@ workspace_storage_path :: proc(kind: Workspace_Storage_Kind, allocator := contex
 	return path, true
 }
 
-workspace_storage_load :: proc(kind: Workspace_Storage_Kind, allocator := context.allocator) -> ([]byte, bool) {
+workspace_storage_load :: proc(kind: WorkspaceStorageKind, allocator := context.allocator) -> ([]byte, bool) {
 	path, path_ok := workspace_storage_path(kind, context.temp_allocator)
 	if !path_ok { return nil, false }
 	data, read_err := os.read_entire_file(path, allocator)
@@ -23,7 +23,7 @@ workspace_storage_load :: proc(kind: Workspace_Storage_Kind, allocator := contex
 	return data, true
 }
 
-workspace_storage_save :: proc(kind: Workspace_Storage_Kind, data: []byte) -> bool {
+workspace_storage_save :: proc(kind: WorkspaceStorageKind, data: []byte) -> bool {
 	path, path_ok := workspace_storage_path(kind, context.temp_allocator)
 	if !path_ok { return false }
 	directory := filepath.dir(path)

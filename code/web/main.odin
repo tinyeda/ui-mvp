@@ -50,21 +50,21 @@ main_start :: proc "c" () {
 	context.logger = create_emscripten_logger()
 	web_context = context
 
-	app.Init()
+	app.init()
 	web_clipboard_init()
 }
 
 @export
 main_update :: proc "c" () -> bool {
 	context = web_context
-	app.Frame()
-	return app.Running()
+	app.frame()
+	return app.is_running()
 }
 
 @export
 main_end :: proc "c" () {
 	context = web_context
-	app.Shutdown()
+	app.shutdown()
 	delete(web_clipboard_buffer)
 	web_clipboard_buffer = nil
 }
@@ -72,13 +72,13 @@ main_end :: proc "c" () {
 @export
 web_window_size_changed :: proc "c" (width, height: c.int, display_scale: f32) {
 	context = web_context
-	app.Resize(int(width), int(height), display_scale)
+	app.resize_window(int(width), int(height), display_scale)
 }
 
 @export
 main_flush_workspace :: proc "c" () {
 	context = web_context
-	app.Flush_Workspace()
+	app.flush_workspace()
 }
 
 @export
@@ -140,27 +140,27 @@ web_clipboard_changed :: proc "c" (memory: rawptr, size: c.int) {
 web_register_file :: proc "c" (memory: rawptr, path_size: c.int, handle, file_size: u64) {
 	context = web_context
 	path := ([^]byte)(memory)[:int(path_size)]
-	app.Web_Register_File(path, app.File_Handle(handle), file_size)
+	app.web_register_file(path, app.FileHandle(handle), file_size)
 	free(memory)
 }
 
 @export
 web_transfer_finished :: proc "c" () {
 	context = web_context
-	app.Web_Transfer_Finished()
+	app.web_transfer_finished()
 }
 
 @export
 web_read_completed :: proc "c" (request_id: u64, memory: rawptr, size, success: c.int) {
 	context = web_context
 	data := ([^]byte)(memory)[:int(size)]
-	app.Web_Read_Completed(request_id, data, success != 0)
+	app.web_read_completed(request_id, data, success != 0)
 }
 
 @export
 web_write_completed :: proc "c" (request_id: u64, path_memory: rawptr, path_size: c.int, handle, file_size: u64, success: c.int) {
 	context = web_context
 	path := ([^]byte)(path_memory)[:int(path_size)]
-	app.Web_Write_Completed(request_id, path, app.File_Handle(handle), file_size, success != 0)
+	app.web_write_completed(request_id, path, app.FileHandle(handle), file_size, success != 0)
 	free(path_memory)
 }

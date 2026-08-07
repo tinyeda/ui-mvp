@@ -80,19 +80,19 @@ draw_ui :: proc() {
 	panels_draw_menu()
 	dockspace_id := imgui.DockSpaceOverViewport()
 
-	if result, ok := File_Browser_Take_Result(); ok {
+	if result, ok := file_browser_take_result(); ok {
 		delete(latest_path)
 		latest_path = strings.clone(result)
 		switch browser.mode {
-		case .Pick_File: text_editor_open_path(result)
-		case .Save_File:
+		case .PICK_FILE: text_editor_open_path(result)
+		case .SAVE_FILE:
 			text_editor_new_path(result)
 			text_editor_save(text_active_document)
-		case .Pick_Folder, .Explorer:
+		case .PICK_FOLDER, .EXPLORER:
 		}
 		delete(result)
 	}
 
 	panels_draw(dockspace_id)
-	File_Browser_Draw_Modals()
+	file_browser_draw_modals()
 }

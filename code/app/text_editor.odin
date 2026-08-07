@@ -7,7 +7,7 @@ import "../../third-party/imgui"
 
 TEXT_EDITOR_INITIAL_CAPACITY :: 4096
 
-Text_Document :: struct {
+TextDocument :: struct {
 	path:           string,
 	buffer:         [dynamic]byte,
 	open:           bool,
@@ -23,7 +23,7 @@ Text_Document :: struct {
 	runtime_context: runtime.Context,
 }
 
-text_documents: [dynamic]Text_Document
+text_documents: [dynamic]TextDocument
 text_active_document: int = -1
 
 text_editor_file_name :: proc(path: string) -> string {
@@ -46,7 +46,7 @@ text_document_make_buffer :: proc(contents: []byte) -> [dynamic]byte {
 	return buffer
 }
 
-text_document_contents :: proc(document: ^Text_Document) -> []byte {
+text_document_contents :: proc(document: ^TextDocument) -> []byte {
 	length := 0
 	for length < len(document.buffer) && document.buffer[length] != 0 {
 		length += 1
@@ -71,8 +71,8 @@ text_editor_find :: proc(path: string) -> int {
 }
 
 text_editor_ensure_panel :: proc() {
-	if !panel_exists(.Text_Editor) {
-		panel_add(.Text_Editor)
+	if !panel_exists(.TEXT_EDITOR) {
+		panel_add(.TEXT_EDITOR)
 	}
 }
 
@@ -84,19 +84,19 @@ text_editor_open_path :: proc(path: string) {
 		return
 	}
 
-	size, found := File_Browser_File_Size(path)
+	size, found := file_browser_file_size(path)
 	if !found || size > FILE_BROWSER_MAX_READ_SIZE {
 		return
 	}
 
-	document := Text_Document{
+	document := TextDocument{
 		path = strings.clone(path),
 		buffer = text_document_make_buffer(nil),
 		open = true,
 		runtime_context = context,
 	}
 	if size > 0 {
-		request_id, requested := File_Browser_Request_Read(path, 0, u32(size))
+		request_id, requested := file_browser_request_read(path, 0, u32(size))
 		if !requested {
 			delete(document.path)
 			delete(document.buffer)
@@ -117,7 +117,7 @@ text_editor_new_path :: proc(path: string) {
 		text_editor_ensure_panel()
 		return
 	}
-	append(&text_documents, Text_Document{
+	append(&text_documents, TextDocument{
 		path = strings.clone(path),
 		buffer = text_document_make_buffer(nil),
 		open = true,
@@ -137,7 +137,7 @@ text_editor_save :: proc(index: int) {
 	if document.loading || document.saving || document.binary || !document.dirty {
 		return
 	}
-	request_id, requested := File_Browser_Request_Write(document.path, text_document_contents(document))
+	request_id, requested := file_browser_request_write(document.path, text_document_contents(document))
 	if requested {
 		document.saving = true
 		document.save_failed = false
@@ -149,7 +149,7 @@ text_editor_save :: proc(index: int) {
 }
 
 text_editor_update :: proc() {
-	if result, ready := File_Browser_Take_Read_Result(); ready {
+	if result, ready := file_browser_take_read_result(); ready {
 		for &document in text_documents {
 			if document.read_request != result.request_id {
 				continue
@@ -169,7 +169,7 @@ text_editor_update :: proc() {
 		delete(result.data)
 	}
 
-	if result, ready := File_Browser_Take_Write_Result(); ready {
+	if result, ready := file_browser_take_write_result(); ready {
 		for &document in text_documents {
 			if document.write_request != result.request_id {
 				continue
@@ -190,7 +190,7 @@ text_editor_update :: proc() {
 }
 
 text_editor_resize_callback :: proc "c" (data: ^imgui.InputTextCallbackData) -> i32 {
-	document := (^Text_Document)(data.UserData)
+	document := (^TextDocument)(data.UserData)
 	if document == nil || data.EventFlag != {.CallbackResize} {
 		return 0
 	}
@@ -202,7 +202,7 @@ text_editor_resize_callback :: proc "c" (data: ^imgui.InputTextCallbackData) -> 
 	return 0
 }
 
-text_editor_draw_document :: proc(document: ^Text_Document, index: int) {
+text_editor_draw_document :: proc(document: ^TextDocument, index: int) {
 	if document.loading {
 		imgui.TextUnformatted("Loading...")
 		return
@@ -235,11 +235,11 @@ text_editor_draw_document :: proc(document: ^Text_Document, index: int) {
 
 text_editor_draw :: proc() {
 	if imgui.Button("New File") {
-		File_Browser_Open(.Save_File)
+		file_browser_open(.SAVE_FILE)
 	}
 	imgui.SameLine()
 	if imgui.Button("Open File") {
-		File_Browser_Open(.Pick_File)
+		file_browser_open(.PICK_FILE)
 	}
 	imgui.SameLine()
 	can_save := text_active_document >= 0 && text_active_document < len(text_documents) &&
@@ -258,7 +258,7 @@ text_editor_draw :: proc() {
 	}
 
 	if imgui.BeginTabBar("text_documents", {.Reorderable, .AutoSelectNewTabs}) {
-		for index in 0..<len(text_documents) {
+		for index in 0 ..< len(text_documents) {
 			document := &text_documents[index]
 			flags: imgui.TabItemFlags
 			if document.dirty {

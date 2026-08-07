@@ -1,14 +1,14 @@
 package app
 
 import "core:c"
-import rl "vendor:raylib"
+import "vendor:raylib"
 import "../../third-party/imgui"
 
 TARGET_FPS :: 0
 UI_FONT_SIZE :: 16.0
 UI_FONT_DATA :: #load("../../third-party/fonts/atkinson-hyperlegible-next/AtkinsonHyperlegibleNext-Regular.ttf")
 
-running: bool
+app_running: bool
 
 load_ui_font :: proc(io: ^imgui.IO) -> bool {
 	// ImGui takes ownership of memory passed without a FontConfig. Give it a
@@ -32,17 +32,17 @@ load_ui_font :: proc(io: ^imgui.IO) -> bool {
 	return true
 }
 
-Init :: proc() -> bool {
-	config_flags: rl.ConfigFlags = {.WINDOW_RESIZABLE}
+init :: proc() -> bool {
+	config_flags: raylib.ConfigFlags = {.WINDOW_RESIZABLE}
 	when ODIN_OS != .JS {
 		config_flags += {.WINDOW_HIGHDPI}
 	}
-	rl.SetConfigFlags(config_flags)
-	rl.InitWindow(1280, 720, "TinyEDA")
-	if !rl.IsWindowReady() {
+	raylib.SetConfigFlags(config_flags)
+	raylib.InitWindow(1280, 720, "TinyEDA")
+	if !raylib.IsWindowReady() {
 		return false
 	}
-	rl.SetTargetFPS(TARGET_FPS)
+	raylib.SetTargetFPS(TARGET_FPS)
 
 	imgui.Raylib_Setup(true)
 	io := imgui.GetIO()
@@ -54,54 +54,54 @@ Init :: proc() -> bool {
 	file_browser_init()
 	workspace_init()
 
-	running = true
+	app_running = true
 	return true
 }
 
-Frame :: proc() {
-	rl.BeginDrawing()
-	rl.ClearBackground(rl.Color{20, 22, 26, 255})
+frame :: proc() {
+	raylib.BeginDrawing()
+	raylib.ClearBackground(raylib.Color{20, 22, 26, 255})
 
 	imgui.Raylib_Begin()
 	draw_ui()
 	imgui.Raylib_End()
 
-	rl.EndDrawing()
+	raylib.EndDrawing()
 	workspace_update()
 	free_all(context.temp_allocator)
 }
 
-Running :: proc() -> bool {
+is_running :: proc() -> bool {
 	when ODIN_OS != .JS {
-		if rl.WindowShouldClose() {
-			running = false
+		if raylib.WindowShouldClose() {
+			app_running = false
 		}
 	}
-	return running
+	return app_running
 }
 
-Resize :: proc(width, height: int, display_scale: f32 = 1.0) {
+resize_window :: proc(width, height: int, display_scale: f32 = 1.0) {
 	if width > 0 && height > 0 {
-		rl.SetWindowSize(c.int(width), c.int(height))
+		raylib.SetWindowSize(c.int(width), c.int(height))
 		ui_display_scale_set(display_scale)
 	}
 }
 
-Flush_Workspace :: proc() {
+flush_workspace :: proc() {
 	workspace_flush()
 }
 
-Shutdown :: proc() {
+shutdown :: proc() {
 	delete(latest_path)
 	latest_path = ""
 	workspace_shutdown()
 	text_editor_shutdown()
 	panels_shutdown()
 	file_browser_shutdown()
-	if !rl.IsWindowReady() {
+	if !raylib.IsWindowReady() {
 		return
 	}
 	imgui.Raylib_Shutdown()
-	rl.CloseWindow()
-	running = false
+	raylib.CloseWindow()
+	app_running = false
 }

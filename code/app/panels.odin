@@ -3,27 +3,27 @@ package app
 import "core:fmt"
 import "../../third-party/imgui"
 
-Panel_Kind :: enum {
-	Welcome,
-	Project_Explorer,
-	Text_Editor,
-	Schematic,
-	Layout,
-	Console,
+PanelKind :: enum {
+	WELCOME,
+	PROJECT_EXPLORER,
+	TEXT_EDITOR,
+	SCHEMATIC,
+	LAYOUT,
+	CONSOLE,
 }
 
-PANEL_KINDS :: [?]Panel_Kind{
-	.Welcome,
-	.Project_Explorer,
-	.Text_Editor,
-	.Schematic,
-	.Layout,
-	.Console,
+PANEL_KINDS :: [?]PanelKind{
+	.WELCOME,
+	.PROJECT_EXPLORER,
+	.TEXT_EDITOR,
+	.SCHEMATIC,
+	.LAYOUT,
+	.CONSOLE,
 }
 
 Panel :: struct {
 	id:        u64,
-	kind:      Panel_Kind,
+	kind:      PanelKind,
 	open:      bool,
 	dock_once: bool,
 }
@@ -32,8 +32,8 @@ panels: [dynamic]Panel
 next_panel_id: u64 = 1
 
 panels_init :: proc() {
-	panel_add(.Welcome)
-	panel_add(.Project_Explorer)
+	panel_add(.WELCOME)
+	panel_add(.PROJECT_EXPLORER)
 }
 
 panels_shutdown :: proc() {
@@ -42,23 +42,23 @@ panels_shutdown :: proc() {
 	next_panel_id = 1
 }
 
-panel_title :: proc(kind: Panel_Kind) -> string {
+panel_title :: proc(kind: PanelKind) -> string {
 	switch kind {
-	case .Welcome:          return "Welcome"
-	case .Project_Explorer: return "Project Explorer"
-	case .Text_Editor:      return "Text Editor"
-	case .Schematic:        return "Schematic"
-	case .Layout:           return "Layout"
-	case .Console:          return "Console"
+	case .WELCOME:          return "Welcome"
+	case .PROJECT_EXPLORER: return "Project Explorer"
+	case .TEXT_EDITOR:      return "Text Editor"
+	case .SCHEMATIC:        return "Schematic"
+	case .LAYOUT:           return "Layout"
+	case .CONSOLE:          return "Console"
 	}
 	return "Panel"
 }
 
-panel_is_singleton :: proc(kind: Panel_Kind) -> bool {
-	return kind == .Project_Explorer || kind == .Text_Editor
+panel_is_singleton :: proc(kind: PanelKind) -> bool {
+	return kind == .PROJECT_EXPLORER || kind == .TEXT_EDITOR
 }
 
-panel_exists :: proc(kind: Panel_Kind) -> bool {
+panel_exists :: proc(kind: PanelKind) -> bool {
 	for panel in panels {
 		if panel.kind == kind && panel.open {
 			return true
@@ -67,7 +67,7 @@ panel_exists :: proc(kind: Panel_Kind) -> bool {
 	return false
 }
 
-panel_add :: proc(kind: Panel_Kind) {
+panel_add :: proc(kind: PanelKind) {
 	if panel_is_singleton(kind) && panel_exists(kind) {
 		return
 	}
@@ -81,7 +81,7 @@ panel_add :: proc(kind: Panel_Kind) {
 	workspace_mark_dirty()
 }
 
-panel_add_menu_item :: proc(kind: Panel_Kind) {
+panel_add_menu_item :: proc(kind: PanelKind) {
 	enabled := !panel_is_singleton(kind) || !panel_exists(kind)
 	if imgui.MenuItem(fb_cstr(panel_title(kind)), nil, false, enabled) {
 		panel_add(kind)
@@ -111,25 +111,25 @@ panels_draw_menu :: proc() {
 
 panel_draw_contents :: proc(panel: ^Panel) {
 	switch panel.kind {
-	case .Welcome:
+	case .WELCOME:
 		imgui.Text("Welcome to TinyEDA")
-		if imgui.Button("Open File") { File_Browser_Open(.Pick_File) }
-		imgui.SameLine(); if imgui.Button("Select Folder") { File_Browser_Open(.Pick_Folder) }
-		imgui.SameLine(); if imgui.Button("Save As") { File_Browser_Open(.Save_File) }
+		if imgui.Button("Open File") { file_browser_open(.PICK_FILE) }
+		imgui.SameLine(); if imgui.Button("Select Folder") { file_browser_open(.PICK_FOLDER) }
+		imgui.SameLine(); if imgui.Button("Save As") { file_browser_open(.SAVE_FILE) }
 		if len(latest_path) > 0 { imgui.Text("Latest: %s", fb_cstr(latest_path)) }
-	case .Project_Explorer:
-		File_Browser_Draw_Explorer_Contents()
-	case .Text_Editor:
+	case .PROJECT_EXPLORER:
+		file_browser_draw_explorer_contents()
+	case .TEXT_EDITOR:
 		text_editor_draw()
-	case .Schematic:
+	case .SCHEMATIC:
 		imgui.TextUnformatted("Schematic view")
 		imgui.Separator()
 		imgui.TextUnformatted("The schematic editor will be rendered here.")
-	case .Layout:
+	case .LAYOUT:
 		imgui.TextUnformatted("Layout view")
 		imgui.Separator()
 		imgui.TextUnformatted("The physical layout editor will be rendered here.")
-	case .Console:
+	case .CONSOLE:
 		imgui.TextUnformatted("Console")
 		imgui.Separator()
 		imgui.TextUnformatted("Tool output and commands will be shown here.")
@@ -149,7 +149,7 @@ panel_draw :: proc(panel: ^Panel, dockspace_id: imgui.ID) {
 }
 
 panels_draw :: proc(dockspace_id: imgui.ID) {
-	for i in 0..<len(panels) {
+	for i in 0 ..< len(panels) {
 		panel_draw(&panels[i], dockspace_id)
 	}
 
